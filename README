@@ -11,8 +11,7 @@ This is an implementation of the algorithm described in the following paper:
 
 The program uses OpenCV library to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at http://opencv.willowgarage.com/wiki/).
 
-A compiled executable file for windows-based machines can be downloaded from:
-	https://hotlab.fer.hr/_download/repository/n3FaceFinder.zip
+A compiled executable file for windows-based machines can be downloaded from https://hotlab.fer.hr/_download/repository/n3FaceFinder.zip
 
 ::::::::::::::::::::::::::
 :: INVOKING THE PROGRAM ::
