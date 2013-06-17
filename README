@@ -3,8 +3,8 @@ This is an implementation of the algorithm described in the following paper:
 	A method for object detection based on pixel intensity comparisons,
 	http://arxiv.org/abs/1305.4537
 
-## Invoking the program
-There are four different ways of invoking the program:
+INVOKING THE PROGRAM
+There are four ways of invoking the program:
 
 1. Run the program without any arguments (this is equivalent to double-clicking the executable file). In this case, the program will attempt to find faces in a video stream obtained from a default webcam attached to the computer. The smallest face that can be detected fits roughly in a 100x100 pixel rectangle.
 
@@ -17,6 +17,8 @@ Example: ./exe 50 /some-folder/image.jpg
 4. Run the program by passing one integer, [MIN_FACE_SIZE], path to the input image, [PATH1], and path to the output image, [PATH2], as command line arguments. The program will attempt to find faces in the image specified by [PATH1]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. The program outputs a new image to [PATH2]. This image is just the one from [PATH1] with obtained detections drawn over it.
 Example: ./exe 50 /some-folder/input-image.jpg /some-other-folder/output-image.png
 
-The program uses OpenCV to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at http://opencv.willowgarage.com/wiki/).
+OPENCV LIBRARY
+The program uses OpenCV library to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at http://opencv.willowgarage.com/wiki/).
 
+ADDITIONAL INFO
 For any additional information contact me at nenad.markus@fer.hr
