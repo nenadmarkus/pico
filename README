@@ -12,7 +12,7 @@ This is an implementation of the algorithm described in the following paper:
 
 The program uses OpenCV library to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at http://opencv.willowgarage.com/wiki/).
 
-The program can also be compiled on windows-based machines (for example, using Visual Studio). A precompiled executable file can be downloaded from:
+A compiled executable file for windows-based machines can be downloaded from:
 	https://hotlab.fer.hr/_download/repository/n3FaceFinder.zip
 
 ::::::::::::::::::::::::::
@@ -25,15 +25,15 @@ There are four ways of invoking the program:
 
 2. Run the program by passing one integer, [MIN_FACE_SIZE], as a command line argument. The program will attempt to find faces in a video stream obtained from a default webcam attached to the computer. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle.
 
-	ex: ./exe 50
+	./exe 50
 
 3. Run the program by passing one integer, [MIN_FACE_SIZE], and path to the input image, [PATH], as command line arguments. The program will attempt to find faces in an image specified by [PATH]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. The program writes (to standard output) the number of detections and their positions and scales.
 
-	ex: ./exe 50 /some-folder/image.jpg
+	./exe 50 /some-folder/image.jpg
 
 4. Run the program by passing one integer, [MIN_FACE_SIZE], path to the input image, [PATH1], and path to the output image, [PATH2], as command line arguments. The program will attempt to find faces in the image specified by [PATH1]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. The program outputs a new image to [PATH2]. This image is just the one from [PATH1] with obtained detections drawn over it.
 
-	ex: ./exe 50 /some-folder/input-image.jpg /other-folder/output-image.png
+	./exe 50 /some-folder/input-image.jpg /other-folder/output-image.png
 
 :::::::::::::::::::::
 :: ADDITIONAL INFO ::
