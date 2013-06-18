@@ -37,7 +37,7 @@ int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetect
 	static char facefinder[] =
 		#include "facefinder.array"
 		;
-	
+
 	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.1f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1); // accurate
 	///return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 0.0f, 1); // fast
 }
@@ -55,7 +55,7 @@ void process_image(IplImage* frame, int draw, int print)
 
 	static IplImage* gray = 0;
 
-	//
+	// grayscale image
 	if(!gray)
 		gray = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, 1);
 	if(frame->nChannels == 3)
@@ -63,7 +63,7 @@ void process_image(IplImage* frame, int draw, int print)
 	else
 		cvCopy(frame, gray, 0);
 
-	//
+	// get relevant image data
 	pixels = (unsigned char*)gray->imageData;
 	nrows = gray->height;
 	ncols = gray->width;
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 		printf("All rights reserved.\n\n");
 
 		minfacesize = 100;
-		
+
 		process_webcam_frames();
 	}
 	else if(argc==2)
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 		printf("All rights reserved.\n\n");
 
 		sscanf(argv[1], "%d", &minfacesize);
-		
+
 		process_webcam_frames();
 	}
 	else if(argc==3)

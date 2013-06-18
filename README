@@ -1,7 +1,7 @@
-
+﻿
 
 This is an implementation of the algorithm described in the following paper:
-	N. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer,
+	N. Markuš, M. Frljak, I. S. Pandžić, J. Ahlberg and R. Forchheimer,
 	A method for object detection based on pixel intensity comparisons,
 	http://arxiv.org/abs/1305.4537
 
@@ -41,5 +41,5 @@ There are four ways of invoking the program:
 
 For any additional information contact me at nenad.markus@fer.hr
 
-Copyright (c) 2013, Nenad Marku�
+Copyright (c) 2013, Nenad Markuš
 All rights reserved.
