@@ -35,7 +35,7 @@ typedef __int32 int32_t;
 */
 	#define BINTEST(f, r, c, s, pixels, nrows, ncols, ldim) \
 		(	\
-			((pixels)[((256*(r)+((char*)&(f))[0]*(s))/256)*(ldim)+((256*(c)+((char*)&(f))[1]*(s))/256)]<=(pixels)[((256*(r)+((char*)&(f))[2]*(s))/256)*(ldim)+((256*(c)+((char*)&(f))[3]*(s))/256)])	\
+			((pixels)[((256*(r)+((int8_t*)&(f))[0]*(s))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[1]*(s))/256)]<=(pixels)[((256*(r)+((int8_t*)&(f))[2]*(s))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[3]*(s))/256)])	\
 		)
 
 /*
