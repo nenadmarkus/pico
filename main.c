@@ -19,13 +19,8 @@
 
 #include <stdio.h>
 
-#ifdef _WIN32
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#else
 #include <cv.h>
 #include <highgui.h>
-#endif
 
 #include "n3odet.h"
 
@@ -38,8 +33,7 @@ int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetect
 		#include "facefinder.array"
 		;
 
-	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.1f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1); // accurate
-	///return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 0.0f, 1); // fast
+	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1); // fast
 }
 
 void process_image(IplImage* frame, int draw, int print)
