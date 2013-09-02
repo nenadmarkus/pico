@@ -33,7 +33,8 @@ int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetect
 		#include "facefinder.array"
 		;
 
-	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.15f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1);
+	//return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1);
+	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 0.0f, 1);
 }
 
 void process_image(IplImage* frame, int draw, int print)
@@ -66,9 +67,10 @@ void process_image(IplImage* frame, int draw, int print)
 	// actually, all the smart stuff happens in the following function
 	ndetections = n3_find_faces(rs, cs, ss, qs, MAXNDETECTIONS, pixels, nrows, ncols, ldim);
 
-	// if the flag is set, draw each detection as a red circle
+	// if the flag is set, draw each detection
 	if(draw)
 		for(i=0; i<ndetections; ++i)
+			// we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 			cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0);
 
 	// if the flag is set, print the results to standard output
