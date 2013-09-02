@@ -33,7 +33,6 @@ int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetect
 		#include "facefinder.array"
 		;
 
-	//return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 1.5f, 1);
 	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 0.0f, 1);
 }
 
@@ -88,7 +87,7 @@ void process_webcam_frames()
 	CvCapture* capture;
 
 	IplImage* frame;
-	IplImage* frameCopy;
+	IplImage* framecopy;
 	
 	int stop;
 
@@ -103,7 +102,7 @@ void process_webcam_frames()
 	}
 
 	// start the main loop in which we'll process webcam output
-	frameCopy = 0;
+	framecopy = 0;
 	stop = 0;
 	while(!stop)
 	{
@@ -121,23 +120,23 @@ void process_webcam_frames()
 		else
 		{
 			// we mustn't tamper with internal OpenCV buffers and that's the reason why we're making a copy of the current frame
-			if(!frameCopy)
-				frameCopy = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, frame->nChannels);
-			cvCopy(frame, frameCopy, 0);
+			if(!framecopy)
+				framecopy = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, frame->nChannels);
+			cvCopy(frame, framecopy, 0);
 
 			// webcam outputs mirrored frames (at least on my machines); you can safely comment out this line if you find it unnecessary
-			cvFlip(frameCopy, frameCopy, 1);
+			cvFlip(framecopy, framecopy, 1);
 
 			// all the smart stuff happens in the following function
-			process_image(frameCopy, 1, 0);
+			process_image(framecopy, 1, 0);
 
 			// display the image to the user
-			cvShowImage(windowname, frameCopy);
+			cvShowImage(windowname, framecopy);
 		}
 	}
 
 	// cleanup
-	cvReleaseImage(&frameCopy);
+	cvReleaseImage(&framecopy);
 	cvReleaseCapture(&capture);
 	cvDestroyWindow(windowname);
 }
@@ -181,7 +180,7 @@ int main(int argc, char* argv[])
 			The program starts by reading one integer, [MIN_FACE_SIZE], and a path to an image, [PATH], passed as command line arguments.
 			The program will attempt to find faces in an image specified by [PATH].
 			The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle.
-			The program writes (to standard output) the number of detections and their positions and scales.
+			The program writes (to standard output) the number of detections, their positions, scales and scores.
 		*/
 
 		sscanf(argv[1], "%d", &minfacesize);
