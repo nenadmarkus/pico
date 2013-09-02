@@ -79,7 +79,7 @@ void process_image(IplImage* frame, int draw, int print)
 		printf("%d\n", ndetections);
 
 		for(i=0; i<ndetections; ++i)
-			printf("%d %d %d\n", (int)rs[i], (int)cs[i], (int)ss[i]);
+			printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 	}
 }
 
@@ -115,9 +115,8 @@ void process_webcam_frames()
 			break;
 		frame = cvRetrieveFrame(capture, 1);
 
-		// we terminate the loop if we don't get any data from the webcam or the user has pressed the ESC key
-		#define KEY_ESCAPE 27
-		if(!frame || key==KEY_ESCAPE)
+		// we terminate the loop if we don't get any data from the webcam or the user has pressed 'q'
+		if(!frame || key=='q')
 			stop = 1;
 		else
 		{
