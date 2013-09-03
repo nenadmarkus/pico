@@ -101,7 +101,7 @@ typedef __int32 int32_t;
 		float treshold;
 
 		//
-		ptr = od;
+		ptr = (int8_t*)od;
 		loc = 0;
 		
 		*o = 0.0f;
