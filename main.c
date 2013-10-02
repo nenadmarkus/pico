@@ -33,7 +33,7 @@ int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetect
 		#include "facefinder.array"
 		;
 
-	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 0.0f, 1);
+	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 2.0f, 1);
 }
 
 void process_image(IplImage* frame, int draw, int print)
