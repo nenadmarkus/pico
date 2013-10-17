@@ -6,11 +6,19 @@ This is an implementation of the algorithm described in the following paper:
 	A method for object detection based on pixel intensity comparisons,
 	http://arxiv.org/abs/1305.4537
 
+More info can be found at http://public.tel.fer.hr/odet/
+
 :::::::::::::::::::::::::::
 :: COMPILING THE PROGRAM ::
 :::::::::::::::::::::::::::
 
-The program uses OpenCV library to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at http://opencv.willowgarage.com/wiki/).
+To compile and run the program, you will need:
+(1) a C compiler
+(2) OpenCV library (http://opencv.org/)
+
+The program can be compiled on *nix machines by using the provided makefile (some small modifications are usually required).
+
+The program uses OpenCV library to obtain data from webcams and to load/save images in common image formats (*.jpg, *.png, ...). Thus, if you wish to redistribute it or its modifications in binary form, it has to reproduce the OpenCV license (read more at the official web page).
 
 A compiled executable file for windows-based machines can be downloaded from https://hotlab.fer.hr/_download/repository/n3FaceFinder.zip
 

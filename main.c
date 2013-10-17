@@ -22,18 +22,18 @@
 #include <cv.h>
 #include <highgui.h>
 
-#include "n3odet.h"
+#include "odet.h"
 
 int minfacesize = 0;
 
-int n3_find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
+int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						unsigned char pixels[], int nrows, int ncols, int ldim)
 {
 	static char facefinder[] =
 		#include "facefinder.array"
 		;
 
-	return n3_find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 2.0f, 1);
+	return find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 2.0f, 1);
 }
 
 void process_image(IplImage* frame, int draw, int print)
@@ -64,7 +64,7 @@ void process_image(IplImage* frame, int draw, int print)
 	ldim = gray->widthStep;
 
 	// actually, all the smart stuff happens in the following function
-	ndetections = n3_find_faces(rs, cs, ss, qs, MAXNDETECTIONS, pixels, nrows, ncols, ldim);
+	ndetections = find_faces(rs, cs, ss, qs, MAXNDETECTIONS, pixels, nrows, ncols, ldim);
 
 	// if the flag is set, draw each detection
 	if(draw)
