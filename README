@@ -1,6 +1,11 @@
 facefinder
 ==========﻿
 
+This is an implementation of the algorithm described in the following paper:
+	N. Markuš, M. Frljak, I. S. Pandžić, J. Ahlberg and R. Forchheimer,
+	A method for object detection based on pixel intensity comparisons,
+	http://arxiv.org/abs/1305.4537
+
 :::::::::::::::::::::::::::
 :: COMPILING THE PROGRAM ::
 :::::::::::::::::::::::::::
@@ -38,3 +43,12 @@ There are five ways of invoking the program:
 5. Run the program by passing one integer, [MIN_FACE_SIZE], a positive real number, [QCUTOFF], path to the input image, [PATH1], and path to the output image, [PATH2], as command line arguments. The program will attempt to find faces in the image specified by [PATH1]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. All detections with estimated quality less than [QCUTOFF] are discarded. The program outputs a new image to [PATH2]. This image is just the one from [PATH1] with obtained detections drawn over it.
 
 	./exe 50 2.0 /some-folder/input-image.jpg /other-folder/output-image.png
+
+:::::::::::::
+:: CONTACT ::
+:::::::::::::
+
+For any additional information contact me at nenad.markus@fer.hr or visit <http://public.tel.fer.hr/odet/>.
+
+Copyright (c) 2013, Nenad Markuš
+All rights reserved.
