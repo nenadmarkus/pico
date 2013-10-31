@@ -25,6 +25,7 @@
 #include "odet.h"
 
 int minfacesize = 0;
+float qcutoff = 0.0f;
 
 int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						unsigned char pixels[], int nrows, int ncols, int ldim)
@@ -33,7 +34,7 @@ int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetection
 		#include "facefinder.array"
 		;
 
-	return find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), 2.0f, 1);
+	return find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), qcutoff, 1);
 }
 
 void process_image(IplImage* frame, int draw, int print)
@@ -147,45 +148,41 @@ int main(int argc, char* argv[])
 
 	if(argc==1)
 	{
-		/*
-			The program will attempt to find faces in a video stream obtained from a default webcam attached to the computer.
-			The smallest face that can be detected fits roughly in a 100x100 pixel rectangle.
-		*/
-
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
 
 		minfacesize = 100;
+		qcutoff = 2.0f;
 
 		process_webcam_frames();
 	}
 	else if(argc==2)
 	{
-		/*
-			The program starts by reading one integer, [MIN_FACE_SIZE], passed as a command line argument.
-			The program will attempt to find faces in a video stream obtained from a default webcam attached to the computer.
-			The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle.
-		*/
-
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
 
 		sscanf(argv[1], "%d", &minfacesize);
+		qcutoff = 2.0f;
 
 		process_webcam_frames();
 	}
 	else if(argc==3)
 	{
-		/*
-			The program starts by reading one integer, [MIN_FACE_SIZE], and a path to an image, [PATH], passed as command line arguments.
-			The program will attempt to find faces in an image specified by [PATH].
-			The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle.
-			The program writes (to standard output) the number of detections, their positions, scales and scores.
-		*/
+		printf("Copyright (c) 2013, Nenad Markus\n");
+		printf("All rights reserved.\n\n");
 
 		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[2], "%f", &qcutoff);
 
-		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
+		process_webcam_frames();
+	}
+	else if(argc==4)
+	{
+
+		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[2], "%f", &qcutoff);
+
+		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
 			printf("Cannot load image!\n");
@@ -196,28 +193,21 @@ int main(int argc, char* argv[])
 
 		cvReleaseImage(&img);
 	}
-	else if(argc==4)
+	else if(argc==5)
 	{
-		/*
-			The program starts by reading one integer, [MIN_FACE_SIZE], path to the input image, [PATH1], and path to the output image, [PATH2], passed as command line arguments.
-			The program will attempt to find faces in an image specified by [PATH1].
-			The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle.
-			The program outputs a new image to [PATH2].
-			This image is just the one from [PATH1] with obtained detections drawn over it.
-		*/
-
 		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[2], "%f", &qcutoff);
 
-		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
+		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
 			printf("Cannot load image!\n");
 			return 1;
 		}
 
-		process_image(img, 1, 1);
+		process_image(img, 1, 0);
 
-		cvSaveImage(argv[3], img, 0);
+		cvSaveImage(argv[4], img, 0);
 
 		cvReleaseImage(&img);
 	}
