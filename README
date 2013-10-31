@@ -36,7 +36,7 @@ There are five ways of invoking the program:
 
 	./exe 50 2.0
 
-4. Run the program by passing one integer, [MIN_FACE_SIZE], and path to the input image, [PATH], as command line arguments. The program will attempt to find faces in an image specified by [PATH]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. The program writes (to standard output) the number of detections and their positions and scales.
+4. Run the program by passing one integer, [MIN_FACE_SIZE], a positive real number, [QCUTOFF], and path to the input image, [PATH], as command line arguments. The program will attempt to find faces in an image specified by [PATH]. The smallest face that can be detected fits roughly in a [MIN_FACE_SIZE]x[MIN_FACE_SIZE] pixel rectangle. All detections with estimated quality less than [QCUTOFF] are discarded. The program writes (to standard output) the number of detections and their positions and scales.
 
 	./exe 50 2.0 /some-folder/image.jpg
 
