@@ -25,6 +25,6 @@
 
 int find_objects(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						void* od,
-						unsigned char pixels[], int nrows, int ncols, int ldim,
+						void* pixels, int nrows, int ncols, int ldim,
 						float scalefactor, float stridefactor, float smin, float smax, float qcutoff,
 						int clusterdetections);

@@ -17,7 +17,7 @@
  *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "odet.h"
+#include "odetrt.h"
 
 /*
 	
@@ -26,6 +26,7 @@
 #ifdef _WIN32
 typedef __int8 int8_t;
 typedef __int32 int32_t;
+typedef unsigned __int8 uint8_t;
 #else
 #include <stdint.h>
 #endif
@@ -33,28 +34,30 @@ typedef __int32 int32_t;
 /*
 	
 */
-	#define BINTEST(f, r, c, sr, sc, pixels, nrows, ncols, ldim) \
+
+#define MAX(a, b) ((a)>(b)?(a):(b))
+#define MIN(a, b) ((a)<(b)?(a):(b))
+
+#define BINTEST(f, r, c, sr, sc, pixels, nrows, ncols, ldim) \
 		(	\
 			((pixels)[((256*(r)+((int8_t*)&(f))[0]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[1]*(sc))/256)]<=(pixels)[((256*(r)+((int8_t*)&(f))[2]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[3]*(sc))/256)])	\
 		)
 
-
 /*
 	
 */
-	float get_dtree_output(int8_t tree[], int r, int c, int sr, int sc, unsigned char pixels[], int nrows, int ncols, int ldim)
+	float get_dtree_output(int8_t tree[], int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
-		int d, lutidx, idx;
+		int d, idx;
 
 		int32_t tdepth;
 		int32_t* tcodes;
 		float* tlut;
 
 		//
-		//toutdim = *(int32*)&tree[0];
-		tdepth = *(int32_t*)&tree[sizeof(int32_t)];
-		tcodes = (int32_t*)&tree[2*sizeof(int32_t)];
-		tlut = (float*)&tree[(2+((1<<tdepth)-1))*sizeof(int32_t)];
+		tdepth = *(int32_t*)&tree[0];
+		tcodes = (int32_t*)&tree[sizeof(int32_t)];
+		tlut = (float*)&tree[(1+((1<<tdepth)-1))*sizeof(int32_t)];
 
 		//
 		idx = 0;
@@ -62,54 +65,53 @@ typedef __int32 int32_t;
 		for(d=0; d<tdepth; ++d)
 		{
 			if( BINTEST(tcodes[idx], r, c, sr, sc, pixels, nrows, ncols, ldim) )
-				idx = 2*idx + 1;
-			else
 				idx = 2*idx + 2;
+			else
+				idx = 2*idx + 1;
 		}
 
 		//
-		lutidx = idx - ((1<<tdepth)-1);
-		
-		//
-		return tlut[lutidx];
+		return tlut[idx - ((1<<tdepth)-1)];
 	}
-	
+
 	int get_dtree_size(int8_t dtree[])
 	{
-		int32_t tdepth, toutdim;
-		
+		int32_t tdepth;
+
 		//
-		toutdim = *(int32_t*)&dtree[0];
-		tdepth = *(int32_t*)&dtree[sizeof(int32_t)];
-		
+		tdepth = *(int32_t*)&dtree[0];
+
 		//
-		return 2*sizeof(int32_t) + ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*toutdim*sizeof(float);
+		return 1*sizeof(int32_t) + ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*sizeof(float);
 	}
 
 /*
 	
 */
-	int odet_classify_region(void* od, float* o, float r_f, float c_f, float s_f, unsigned char pixels[], int nrows, int ncols, int ldim)
+	int classify_region(void* od, float* o, float r, float c, float s, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
 		int8_t* ptr;
 		int loc;
 
 		int32_t nstages;
-		float ratio;
 
 		int i, j;
-		int r, c, sr, sc;
-		float treshold;
+		int ir, ic, isr, isc;
+		float threshold;
 
 		//
 		ptr = (int8_t*)od;
 		loc = 0;
-		
+
 		*o = 0.0f;
 
 		//
-		ratio = *(float*)&ptr[loc];
-		loc += sizeof(float);
+		ir = (int)( r + s**(float*)&ptr[0*sizeof(float)] );
+		ic = (int)( c + s**(float*)&ptr[1*sizeof(float)] );
+		isr = (int)( s**(float*)&ptr[2*sizeof(float)] );
+		isc = (int)( s**(float*)&ptr[3*sizeof(float)] );
+
+		loc += 4*sizeof(float);
 
 		//
 		nstages = *(int32_t*)&ptr[loc];
@@ -117,12 +119,6 @@ typedef __int32 int32_t;
 
 		if(!nstages)
 			return 0;
-
-		//
-		r = (int)r_f;
-		c = (int)c_f;
-		sr = (int)s_f;
-		sc = (int)(ratio*s_f);
 
 		//
 		i = 0;
@@ -139,17 +135,17 @@ typedef __int32 int32_t;
 			for(j=0; j<numtrees; ++j)
 			{
 				//
-				*o += get_dtree_output(&ptr[loc], r, c, sr, sc, pixels, nrows, ncols, ldim);
+				*o += get_dtree_output(&ptr[loc], ir, ic, isr, isc, pixels, nrows, ncols, ldim);
 
 				loc += get_dtree_size(&ptr[loc]);
 			}
 
 			//
-			treshold = *(float*)&ptr[loc];
+			threshold = *(float*)&ptr[loc];
 			loc += sizeof(float);
 
 			//
-			if(*o <= treshold)
+			if(*o <= threshold)
 				return -1;
 
 			//
@@ -157,7 +153,7 @@ typedef __int32 int32_t;
 		}
 
 		//
-		*o = *o - treshold;
+		*o = *o - threshold;
 
 		//
 		return 1;
@@ -166,43 +162,36 @@ typedef __int32 int32_t;
 /*
 	
 */
-	#ifndef MAX
-		#define MAX(a, b) ((a)>(b)?(a):(b))
-	#endif
 
-	#ifndef MIN
-		#define MIN(a, b) ((a)<(b)?(a):(b))
-	#endif
-
-	float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2, float ratio)
+	float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2)
 	{
 		float overr, overc;
 
 		//
 		overr = MAX(0, MIN(r1+s1/2, r2+s2/2) - MAX(r1-s1/2, r2-s2/2));
-		overc = MAX(0, MIN(c1+ratio*s1/2, c2+ratio*s2/2) - MAX(c1-ratio*s1/2, c2-ratio*s2/2));
+		overc = MAX(0, MIN(c1+s1/2, c2+s2/2) - MAX(c1-s1/2, c2-s2/2));
 
 		//
-		return overr*overc/(ratio*s1*s1+ratio*s2*s2-overr*overc);
+		return overr*overc/(s1*s1+s2*s2-overr*overc);
 	}
 
-	void ccdfs(int a[], int i, float rs[], float cs[], float ss[], float ratio, int n)
+	void ccdfs(int a[], int i, float rs[], float cs[], float ss[], int n)
 	{
 		int j;
 
 		//
 		for(j=0; j<n; ++j)
-			if(a[j]==0 && get_overlap(rs[i], cs[i], ss[i], rs[j], cs[j], ss[j], ratio)>0.3f)
+			if(a[j]==0 && get_overlap(rs[i], cs[i], ss[i], rs[j], cs[j], ss[j])>0.3f)
 			{
 				//
 				a[j] = a[i];
 
 				//
-				ccdfs(a, j, rs, cs, ss, ratio, n);
+				ccdfs(a, j, rs, cs, ss, n);
 			}
 	}
 
-	int find_connected_components(int a[], float rs[], float cs[], float ss[], float ratio, int n)
+	int find_connected_components(int a[], float rs[], float cs[], float ss[], int n)
 	{
 		int i, ncc, cc;
 
@@ -225,7 +214,7 @@ typedef __int32 int32_t;
 				a[i] = cc;
 
 				//
-				ccdfs(a, i, rs, cs, ss, ratio, n);
+				ccdfs(a, i, rs, cs, ss, n);
 
 				//
 				++ncc;
@@ -236,13 +225,13 @@ typedef __int32 int32_t;
 		return ncc;
 	}
 
-	int cluster_detections(float rs[], float cs[], float ss[], float qs[], float ratio, int n, float qcutoff)
+	int cluster_detections(float rs[], float cs[], float ss[], float qs[], int n, float qcutoff)
 	{
 		int idx, ncc, cc;
 		int a[4096];
 
 		//
-		ncc = find_connected_components(a, rs, cs, ss, ratio, n);
+		ncc = find_connected_components(a, rs, cs, ss, n);
 
 		if(!ncc)
 			return 0;
@@ -291,16 +280,14 @@ typedef __int32 int32_t;
 
 	int find_objects(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						void* od,
-						unsigned char pixels[], int nrows, int ncols, int ldim,
+						void* pixels, int nrows, int ncols, int ldim,
 						float scalefactor, float stridefactor, float smin, float smax, float qcutoff,
 						int clusterdetections)
 	{
-		float s, ratio;
+		float s;
 		int ndetections;
 
 		//
-		ratio = *(float*)od;
-
 		ndetections = 0;
 
 		s = smin;
@@ -308,10 +295,10 @@ typedef __int32 int32_t;
 		while(s<=smax)
 		{
 			float r, c, dr, dc;
-		
+
 			//
 			dr = MAX(stridefactor*s, 1.0f);
-			dc = MAX(ratio*stridefactor*s, 1.0f);
+			dc = MAX(stridefactor*s, 1.0f);
 
 			//
 			for(r=s/2+1; r<=nrows-s/2-1; r+=dr)
@@ -319,7 +306,7 @@ typedef __int32 int32_t;
 				{
 					float q;
 
-					if(odet_classify_region(od, &q, r, c, s, pixels, nrows, ncols, ldim)>0)
+					if(classify_region(od, &q, r, c, s, pixels, nrows, ncols, ldim)>0)
 					{
 						//
 						if(ndetections < maxndetections)
@@ -341,7 +328,7 @@ typedef __int32 int32_t;
 
 		//
 		if(clusterdetections)
-			ndetections = cluster_detections(rs, cs, ss, qs, ratio, ndetections, qcutoff);
+			ndetections = cluster_detections(rs, cs, ss, qs, ndetections, qcutoff);
 
 		//
 		return ndetections;

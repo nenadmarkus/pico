@@ -22,7 +22,7 @@
 #include <cv.h>
 #include <highgui.h>
 
-#include "odet.h"
+#include "odetrt.h"
 
 int minfacesize = 0;
 float qcutoff = 0.0f;
