@@ -17,19 +17,11 @@
  *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "odetrt.h"
-
 /*
 	
 */
 
-#ifdef _WIN32
-typedef __int8 int8_t;
-typedef __int32 int32_t;
-typedef unsigned __int8 uint8_t;
-#else
 #include <stdint.h>
-#endif
 
 /*
 	
@@ -225,7 +217,7 @@ typedef unsigned __int8 uint8_t;
 		return ncc;
 	}
 
-	int cluster_detections(float rs[], float cs[], float ss[], float qs[], int n, float qcutoff)
+	int cluster_detections(float rs[], float cs[], float ss[], float qs[], int n)
 	{
 		int idx, ncc, cc;
 		int a[4096];
@@ -259,19 +251,16 @@ typedef unsigned __int8 uint8_t;
 					++k;
 				}
 
-			if(sumqs >= qcutoff)
-			{
-				//
-				qs[idx] = sumqs; // accumulated confidence measure
+			//
+			qs[idx] = sumqs; // accumulated confidence measure
 
-				//
-				rs[idx] = sumrs/k;
-				cs[idx] = sumcs/k;
-				ss[idx] = sumss/k;
+			//
+			rs[idx] = sumrs/k;
+			cs[idx] = sumcs/k;
+			ss[idx] = sumss/k;
 
-				//
-				++idx;
-			}
+			//
+			++idx;
 		}
 
 		//
@@ -281,7 +270,7 @@ typedef unsigned __int8 uint8_t;
 	int find_objects(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						void* od,
 						void* pixels, int nrows, int ncols, int ldim,
-						float scalefactor, float stridefactor, float smin, float smax, float qcutoff,
+						float scalefactor, float stridefactor, float minsize, float maxsize,
 						int clusterdetections)
 	{
 		float s;
@@ -290,9 +279,9 @@ typedef unsigned __int8 uint8_t;
 		//
 		ndetections = 0;
 
-		s = smin;
+		s = minsize;
 
-		while(s<=smax)
+		while(s<=maxsize)
 		{
 			float r, c, dr, dc;
 
@@ -308,7 +297,6 @@ typedef unsigned __int8 uint8_t;
 
 					if(classify_region(od, &q, r, c, s, pixels, nrows, ncols, ldim)>0)
 					{
-						//
 						if(ndetections < maxndetections)
 						{
 							qs[ndetections] = q;
@@ -316,7 +304,6 @@ typedef unsigned __int8 uint8_t;
 							cs[ndetections] = c;
 							ss[ndetections] = s;
 
-							//
 							++ndetections;
 						}
 					}
@@ -328,7 +315,7 @@ typedef unsigned __int8 uint8_t;
 
 		//
 		if(clusterdetections)
-			ndetections = cluster_detections(rs, cs, ss, qs, ndetections, qcutoff);
+			ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
 
 		//
 		return ndetections;

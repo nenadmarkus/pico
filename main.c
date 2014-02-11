@@ -24,18 +24,8 @@
 
 #include "odetrt.h"
 
-int minfacesize = 0;
+int minsize = 0;
 float qcutoff = 0.0f;
-
-int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
-						unsigned char pixels[], int nrows, int ncols, int ldim)
-{
-	static char facefinder[] =
-		#include "facefinder.array"
-		;
-
-	return find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, MIN(nrows, ncols), qcutoff, 1);
-}
 
 void process_image(IplImage* frame, int draw, int print)
 {
@@ -49,6 +39,11 @@ void process_image(IplImage* frame, int draw, int print)
 	float qs[MAXNDETECTIONS], rs[MAXNDETECTIONS], cs[MAXNDETECTIONS], ss[MAXNDETECTIONS];
 
 	static IplImage* gray = 0;
+
+	// a structure that encodes object appearance
+	static char appfinder[] =
+		#include "facefinder.array"
+		;
 
 	// grayscale image
 	if(!gray)
@@ -65,21 +60,20 @@ void process_image(IplImage* frame, int draw, int print)
 	ldim = gray->widthStep;
 
 	// actually, all the smart stuff happens in the following function
-	ndetections = find_faces(rs, cs, ss, qs, MAXNDETECTIONS, pixels, nrows, ncols, ldim);
+	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minsize, MIN(nrows, ncols), 1);
 
 	// if the flag is set, draw each detection
 	if(draw)
 		for(i=0; i<ndetections; ++i)
-			// we draw circles here since height-to-width ratio of the detected face regions is 1.0f
-			cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0);
+			if(qs[i]>=qcutoff) // check the confidence threshold
+				cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 
 	// if the flag is set, print the results to standard output
 	if(print)
 	{
-		printf("%d\n", ndetections);
-
 		for(i=0; i<ndetections; ++i)
-			printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
+			if(qs[i]>=qcutoff) // check the confidence threshold
+				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 	}
 }
 
@@ -89,7 +83,7 @@ void process_webcam_frames()
 
 	IplImage* frame;
 	IplImage* framecopy;
-	
+
 	int stop;
 
 	const char* windowname = "--------------------";
@@ -151,7 +145,7 @@ int main(int argc, char* argv[])
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
 
-		minfacesize = 100;
+		minsize = 100;
 		qcutoff = 2.0f;
 
 		process_webcam_frames();
@@ -161,7 +155,7 @@ int main(int argc, char* argv[])
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
 
-		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[1], "%d", &minsize);
 		qcutoff = 2.0f;
 
 		process_webcam_frames();
@@ -171,7 +165,7 @@ int main(int argc, char* argv[])
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
 
-		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[1], "%d", &minsize);
 		sscanf(argv[2], "%f", &qcutoff);
 
 		process_webcam_frames();
@@ -179,7 +173,7 @@ int main(int argc, char* argv[])
 	else if(argc==4)
 	{
 
-		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[1], "%d", &minsize);
 		sscanf(argv[2], "%f", &qcutoff);
 
 		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
@@ -195,7 +189,7 @@ int main(int argc, char* argv[])
 	}
 	else if(argc==5)
 	{
-		sscanf(argv[1], "%d", &minfacesize);
+		sscanf(argv[1], "%d", &minsize);
 		sscanf(argv[2], "%f", &qcutoff);
 
 		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
