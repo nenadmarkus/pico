@@ -22,10 +22,14 @@
 #include <cv.h>
 #include <highgui.h>
 
-#include "odetrt.h"
+#include "../picort.h"
+
+// set this value before compilation
+#ifndef QCUTOFF
+#define QCUTOFF 3.0f
+#endif
 
 int minsize = 0;
-float qcutoff = 0.0f;
 
 void process_image(IplImage* frame, int draw, int print)
 {
@@ -42,8 +46,9 @@ void process_image(IplImage* frame, int draw, int print)
 
 	// a structure that encodes object appearance
 	static char appfinder[] =
-		#include "facefinder.array"
-		;
+		{
+			#include "../cascades/facefinder.ea"
+		};
 
 	// grayscale image
 	if(!gray)
@@ -65,14 +70,14 @@ void process_image(IplImage* frame, int draw, int print)
 	// if the flag is set, draw each detection
 	if(draw)
 		for(i=0; i<ndetections; ++i)
-			if(qs[i]>=qcutoff) // check the confidence threshold
+			if(qs[i]>=QCUTOFF) // check the confidence threshold
 				cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 
 	// if the flag is set, print the results to standard output
 	if(print)
 	{
 		for(i=0; i<ndetections; ++i)
-			if(qs[i]>=qcutoff) // check the confidence threshold
+			if(qs[i]>=QCUTOFF) // check the confidence threshold
 				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 	}
 }
@@ -146,7 +151,6 @@ int main(int argc, char* argv[])
 		printf("All rights reserved.\n\n");
 
 		minsize = 100;
-		qcutoff = 2.0f;
 
 		process_webcam_frames();
 	}
@@ -156,27 +160,15 @@ int main(int argc, char* argv[])
 		printf("All rights reserved.\n\n");
 
 		sscanf(argv[1], "%d", &minsize);
-		qcutoff = 2.0f;
 
 		process_webcam_frames();
 	}
 	else if(argc==3)
 	{
-		printf("Copyright (c) 2013, Nenad Markus\n");
-		printf("All rights reserved.\n\n");
 
 		sscanf(argv[1], "%d", &minsize);
-		sscanf(argv[2], "%f", &qcutoff);
 
-		process_webcam_frames();
-	}
-	else if(argc==4)
-	{
-
-		sscanf(argv[1], "%d", &minsize);
-		sscanf(argv[2], "%f", &qcutoff);
-
-		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
+		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
 			printf("Cannot load image!\n");
@@ -187,12 +179,12 @@ int main(int argc, char* argv[])
 
 		cvReleaseImage(&img);
 	}
-	else if(argc==5)
+	else if(argc==4)
 	{
-		sscanf(argv[1], "%d", &minsize);
-		sscanf(argv[2], "%f", &qcutoff);
 
-		img = cvLoadImage(argv[3], CV_LOAD_IMAGE_COLOR);
+		sscanf(argv[1], "%d", &minsize);
+
+		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
 			printf("Cannot load image!\n");
@@ -201,8 +193,10 @@ int main(int argc, char* argv[])
 
 		process_image(img, 1, 0);
 
-		cvSaveImage(argv[4], img, 0);
+		//
+		cvSaveImage(argv[3], img, 0);
 
+		//
 		cvReleaseImage(&img);
 	}
 	else

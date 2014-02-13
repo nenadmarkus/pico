@@ -20,7 +20,7 @@
 #pragma once
 
 /*
-	
+	Parameters rs, cs, ss and qs represent arrays of length maxndetections ...
 */
 
 int find_objects(float rs[], float cs[], float ss[], float qs[], int maxndetections,
