@@ -1,6 +1,6 @@
 # Pixel Intensity Comparison-based Object detection (pico)
 
-Those of you who would like to quickly see what this repository is all about, go to the folder **"runtime/sample/"**. There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
+Those of you who would like to quickly see what this repository is all about, go to the folder **runtime/sample/**. There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
 
 In general, detection can be described as a task of finding the positions and scales of all objects in an image that belong to a given appearance class.
 For example, these objects could be cars, pedestrians or human faces.
@@ -25,8 +25,10 @@ Some highlights of **pico** are:
 
 ## Detecting objects in images and videos
 
-The folder **"runtime/"** contains all the needed resources to perform object detection in images and video streams using pre-trained classification cascades.
-Specifically, a sample application that performs face detection can be found in the folder **"runtime/sample/"**.
+The folder **runtime/** contains all the needed resources to perform object detection in images and video streams using pre-trained classification cascades.
+Specifically, a sample application that performs face detection can be found in the folder **runtime/sample/**.
+
+Note that the library `picorirt.c` enables rotation invariant object detection.
 
 ### Embedding pico runtime within your application
 
@@ -43,14 +45,14 @@ To get a feel for how the library works, we recommend that you look at `sample.c
 
 ## Learning custom object detectors
 
-The program `picolrn.c` (available in the folder **"learning/"**) enables you to learn your own (custom) object detectors.
+The program `picolrn.c` (available in the folder **learning/**) enables you to learn your own (custom) object detectors.
 The training data has to be provided in a specific format.
 The details are printed to the standard output when `picolrn` is invoked without parameters.
 It is often convenient to pipe this information to a text file:
 
     $ ./picolrn > howto.txt
 
-A tutorial that guides you through the process of learning a face detector can be found in the folder **"learning/tutorial/"**.
+A tutorial that guides you through the process of learning a face detector can be found in the folder **learning/tutorial/**.
 
 ## Citation
 
