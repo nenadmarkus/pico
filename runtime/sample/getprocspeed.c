@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 	int n;
 	IplImage* img = 0;
 
-	if(argc!=0)
+	if(argc!=4)
 	{
 		printf("Invalid number of arguments.");
 		return 0;
