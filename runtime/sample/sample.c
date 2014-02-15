@@ -24,12 +24,31 @@
 
 #include "../picort.h"
 
-// set this value before compilation
+/*
+	object detection parameters
+*/
+
 #ifndef QCUTOFF
 #define QCUTOFF 3.0f
 #endif
 
-int minsize = 0;
+#ifndef MINSIZE
+#define MINSIZE 100
+#endif
+
+#ifndef SCALEFACTOR
+#define SCALEFACTOR 1.2f
+#endif
+
+#ifndef STRIDEFACTOR
+#define STRIDEFACTOR 0.1f
+#endif
+
+/*
+	
+*/
+
+int minsize = MINSIZE;
 
 void process_image(IplImage* frame, int draw, int print)
 {
@@ -65,7 +84,7 @@ void process_image(IplImage* frame, int draw, int print)
 	ldim = gray->widthStep;
 
 	// actually, all the smart stuff happens in the following function
-	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minsize, MIN(nrows, ncols), 1);
+	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
 
 	// if the flag is set, draw each detection
 	if(draw)
@@ -149,8 +168,6 @@ int main(int argc, char* argv[])
 	{
 		printf("Copyright (c) 2013, Nenad Markus\n");
 		printf("All rights reserved.\n\n");
-
-		minsize = 100;
 
 		process_webcam_frames();
 	}

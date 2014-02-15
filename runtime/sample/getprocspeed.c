@@ -49,10 +49,30 @@ float getticks()
 #endif
 
 /*
+	object detection parameters
+*/
+
+#ifndef QCUTOFF
+#define QCUTOFF 3.0f
+#endif
+
+#ifndef MINSIZE
+#define MINSIZE 100
+#endif
+
+#ifndef SCALEFACTOR
+#define SCALEFACTOR 1.2f
+#endif
+
+#ifndef STRIDEFACTOR
+#define STRIDEFACTOR 0.1f
+#endif
+
+/*
 	
 */
 
-int minsize = 0;
+int minsize = MINSIZE;
 
 float process_image(IplImage* frame, int niters)
 {
@@ -92,7 +112,7 @@ float process_image(IplImage* frame, int niters)
 	tstart = getticks();
 
 	for(i=0; i<niters; ++i)
-		find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minsize, MIN(nrows, ncols), 1);
+		find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
 
 	tend = getticks();
 
