@@ -36,13 +36,13 @@
 
 	static int lutsprecomputed = 0;
 
-	static int rrotlut[256][256][NROTS];
-	static int crotlut[256][256][NROTS];
-	
+	static int sinlut[NROTS];
+	static int coslut[NROTS];
+
 	void precompute_rotluts()
 	{
-		int i, j, t;
-		
+		int t;
+
 		const float pi = 3.14159265f;
 
 		//
@@ -51,50 +51,43 @@
 
 		//
 		for(t=0; t<NROTS; ++t)
-			for(i=0; i<256; ++i)
-				for(j=0; j<256; ++j)
-				{
-					uint8_t rcode;
-					uint8_t ccode;
+		{
+			float theta;
 
-					int r, c;
-					float theta;
+			//
+			theta = t*2.0f*pi/NROTS;
 
-					//
-					rcode = i;
-					ccode = j;
-
-					r = *(int8_t*)&rcode;
-					c = *(int8_t*)&ccode;
-
-					//
-					theta = t*2.0f*pi/NROTS;
-
-					//
-					rrotlut[i][j][t] = (int)(+r*cos(theta) + c*sin(theta));
-					crotlut[i][j][t] = (int)(-r*sin(theta) + c*cos(theta));
-				}
+			//
+			sinlut[t] = (int)( 255.0f*sin(theta) );
+			coslut[t] = (int)( 255.0f*cos(theta) );
+		}
 
 		//
 		lutsprecomputed = 1;
 	}
 
-	int bintest(int tcode, int r, int c, int sr, int sc, int rotind, unsigned char pixels[], int nrows, int ncols, int ldim)
+	int bintest(int tcode, int r, int c, int sr, int sc, int rotind, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
 		//
 		int r1, c1, r2, c2;
+		int8_t* p = (int8_t*)&tcode;
 
 		//
-		uint8_t* p = (uint8_t*)&tcode;
+		r1 = (p[0]*sr*coslut[rotind] - p[1]*sc*sinlut[rotind])/255;
+		c1 = (p[0]*sr*sinlut[rotind] + p[1]*sc*coslut[rotind])/255;
 
-		r1 = (256*r + rrotlut[p[0]][p[1]][rotind]*sr)/256;
-		c1 = (256*c + crotlut[p[0]][p[1]][rotind]*sc)/256;
-
-		r2 = (256*r + rrotlut[p[2]][p[3]][rotind]*sr)/256;
-		c2 = (256*c + crotlut[p[2]][p[3]][rotind]*sc)/256;
+		r2 = (p[2]*sr*coslut[rotind] - p[3]*sc*sinlut[rotind])/255;
+		c2 = (p[2]*sr*sinlut[rotind] + p[3]*sc*coslut[rotind])/255;
 
 		//
-		return pixels[r1*ldim+c1] <= pixels[r2*ldim+c2];
+		r1 = (256*r + r1)/256;
+		c1 = (256*c + c1)/256;
+
+		r2 = (256*r + r2)/256;
+		c2 = (256*c + c2)/256;
+
+		//
+		return pixels[r1*ldim+c1]<=pixels[r2*ldim+c2];
 	}
 
 /*
@@ -127,7 +120,7 @@
 		//
 		return tlut[idx - ((1<<tdepth)-1)];
 	}
-	
+
 	int get_dtree_size(int8_t dtree[])
 	{
 		int32_t tdepth;
@@ -148,6 +141,7 @@
 		int loc;
 
 		int32_t nstages;
+		float tr, tc, tsr, tsc;
 
 		int i, j;
 		int ir, ic, isr, isc;
@@ -160,12 +154,18 @@
 		*o = 0.0f;
 
 		//
-		ir = (int)( r + s**(float*)&ptr[0*sizeof(float)] );
-		ic = (int)( c + s**(float*)&ptr[1*sizeof(float)] );
-		isr = (int)( s**(float*)&ptr[2*sizeof(float)] );
-		isc = (int)( s**(float*)&ptr[3*sizeof(float)] );
+		tr = *(float*)&ptr[0*sizeof(float)];
+		tc = *(float*)&ptr[1*sizeof(float)];
+		tsr = *(float*)&ptr[2*sizeof(float)];
+		tsc = *(float*)&ptr[3*sizeof(float)];
 
 		loc += 4*sizeof(float);
+
+		//
+		ir = (int)( r + s*(tr*coslut[rotind]-tc*sinlut[rotind])/255.0f );
+		ic = (int)( c + s*(tr*sinlut[rotind]+tc*coslut[rotind])/255.0f );
+		isr = (int)(s*tsr);
+		isc = (int)(s*tsc );
 
 		//
 		nstages = *(int32_t*)&ptr[loc];
