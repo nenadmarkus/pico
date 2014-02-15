@@ -8,8 +8,8 @@ import numpy
 import matplotlib.pyplot
 import matplotlib.image
 import matplotlib.cm
-import Image
-import ImageOps
+import PIL
+import PIL.ImageOps
 import struct
 import argparse
 import os
@@ -176,7 +176,7 @@ for i in range(0, len(rs)):
 	except:
 		continue
 
-	print path
+	print(path)
 
 	#
 	im = numpy.asarray(im)

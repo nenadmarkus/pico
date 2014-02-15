@@ -19,4 +19,4 @@ strdata = ''
 for i in range(0, len(data)):
 	strdata += hex(ord(data[i])) + ', '
 
-print strdata
+print(strdata)

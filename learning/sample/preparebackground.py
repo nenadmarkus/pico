@@ -5,7 +5,7 @@
 #
 import os
 import numpy
-import Image
+import PIL
 import struct
 import argparse
 
@@ -56,21 +56,17 @@ n = 0
 for dirpath, dirnames, filenames in os.walk(srcfolder):
 	for filename in filenames:
 		#
-		if not (filename.endswith('.jpg') or filename.endswith('.JPG') or filename.endswith('.jpeg') or filename.endswith('.png') or filename.endswith('.bmp')):
-			continue
-
-		#
 		path = dirpath + '/' + filename
 
 		#
 		try:
 			im = Image.open(path).convert('L')
 		except:
-			print 'CANNOT PROCESS ' + path
+			print('CANNOT PROCESS ' + path)
 			continue
 
 		#
-		print path
+		print(path)
 
 		#
 		im = numpy.asarray(im)
