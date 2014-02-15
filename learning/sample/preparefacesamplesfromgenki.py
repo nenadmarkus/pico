@@ -8,8 +8,8 @@ import numpy
 import matplotlib.pyplot
 import matplotlib.image
 import matplotlib.cm
-import PIL
-import PIL.ImageOps
+from PIL import Image
+from PIL import ImageOps
 import struct
 import argparse
 import os
