@@ -1231,25 +1231,19 @@ int main(int argc, char* argv[])
 	t = getticks();
 	if(!load_object_samples(objspath))
 	{
-		printf("cannot load object samples!\n");
-		printf("exiting ...\n");
-
+		printf("cannot load object samples ... exiting ...\n");
 		return 1;
 	}
-	printf("onum: %d\n", numos);
-	printf("elapsed time: %f [sec]\n", getticks()-t);
+	printf("%d object samples loaded in %f seconds\n", numos, getticks()-t);
 
 	//
 	t = getticks();
 	if(!load_background_images(nonobjimgspath))
 	{
-		printf("cannot load background images!\n");
-		printf("exiting ...\n");
-
+		printf("cannot load background images ... exiting ...\n");
 		return 1;
 	}
-	printf("bimagesnum: %d\n", numbs);
-	printf("elapsed time: %f [sec]\n", getticks()-t);
+	printf("%d background images loaded in %f seconds\n", numbs, getticks()-t);
 
 	//
 	t = getticks();

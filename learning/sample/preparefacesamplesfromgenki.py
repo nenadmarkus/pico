@@ -124,7 +124,7 @@ def export(im, r, c, s, folder, id):
 
 			matplotlib.pyplot.draw()
 
-			response = raw_input('Press Enter to continue...')
+			response = input('Press Enter to continue...')
 
 		file.write('%f %f %f\n' % (rtmp, ctmp, stmp))
 
@@ -169,7 +169,7 @@ for i in range(0, len(rs)):
 	r = rs[i]
 	c = cs[i]
 	s = ss[i]
-	
+
 	#
 	try:
 		im = Image.open(path).convert('L')
@@ -187,7 +187,7 @@ for i in range(0, len(rs)):
 	list.write(id + '.dat\n')
 	list.flush()
 	n = n+1
-	
+
 	# faces are symmetric and we exploit this here
 	id = 'obj' + str(n)
 	exportmirrored(im, r, c, s, dstfolder, id)
