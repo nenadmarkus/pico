@@ -1,4 +1,4 @@
-#!/bit/bash
+#!/bin/bash
 
 #
 # prepare face samples (from the GENKI dataset)
