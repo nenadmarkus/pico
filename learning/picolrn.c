@@ -501,8 +501,6 @@ int load_object_samples(const char* folder)
 	char buffer[1024];
 	FILE* list;
 
-	int tdim;
-
 	//
 	printf("Loading object samples from '%s'\n", folder);
 
