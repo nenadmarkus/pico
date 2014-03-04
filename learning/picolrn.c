@@ -285,7 +285,7 @@ float get_split_error(int tcode, float tvals[], int rs[], int cs[], int srs[], i
 	double wsum, wsum0, wsum1;
 	double wtvalsum0, wtvalsumsqr0, wtvalsum1, wtvalsumsqr1;
 
-	double e0, e1;
+	double wmse0, wmse1;
 
 	//
 	wsum = wsum0 = wsum1 = wtvalsum0 = wtvalsum1 = wtvalsumsqr0 = wtvalsumsqr1 = 0.0;
@@ -309,11 +309,11 @@ float get_split_error(int tcode, float tvals[], int rs[], int cs[], int srs[], i
 	}
 
 	//
-	e0 = wtvalsumsqr0 - SQR(wtvalsum0)/wsum0;
-	e1 = wtvalsumsqr1 - SQR(wtvalsum1)/wsum1;
+	wmse0 = wtvalsumsqr0 - SQR(wtvalsum0)/wsum0;
+	wmse1 = wtvalsumsqr1 - SQR(wtvalsum1)/wsum1;
 
 	//
-	return (float)( (e0 + e1)/wsum );
+	return (float)( (wmse0 + wmse1)/wsum );
 }
 
 int split_training_data(int tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)

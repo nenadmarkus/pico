@@ -182,7 +182,6 @@ int main(int argc, char* argv[])
 	}
 	else if(argc==3)
 	{
-
 		sscanf(argv[1], "%d", &minsize);
 
 		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
@@ -198,7 +197,6 @@ int main(int argc, char* argv[])
 	}
 	else if(argc==4)
 	{
-
 		sscanf(argv[1], "%d", &minsize);
 
 		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
