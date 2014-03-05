@@ -52,7 +52,7 @@ It is often convenient to pipe this information to a text file:
 
     $ ./picolrn > howto.txt
 
-A tutorial that guides you through the process of learning a face detector can be found in the folder **learning/tutorial/**.
+A tutorial that guides you through the process of learning a face detector can be found in the folder **learning/sample/**.
 
 ## Citation
 
