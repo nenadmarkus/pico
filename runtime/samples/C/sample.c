@@ -22,7 +22,7 @@
 #include <cv.h>
 #include <highgui.h>
 
-#include "../picort.h"
+#include "../../picort.h"
 
 /*
 	object detection parameters
@@ -66,7 +66,7 @@ void process_image(IplImage* frame, int draw, int print)
 	// a structure that encodes object appearance
 	static char appfinder[] =
 		{
-			#include "../cascades/facefinder.ea"
+			#include "../../cascades/facefinder.ea"
 		};
 
 	// grayscale image

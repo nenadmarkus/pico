@@ -5,7 +5,7 @@
 
 #include <time.h>
 
-#include "../picort.h"
+#include "../../picort.h"
 
 /*
 	portable time function
@@ -91,7 +91,7 @@ float process_image(IplImage* frame, int niters)
 	// a structure that encodes object appearance
 	static char appfinder[] =
 		{
-			#include "../cascades/facefinder.ea"
+			#include "../../cascades/facefinder.ea"
 		};
 
 	// grayscale image
