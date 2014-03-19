@@ -5,6 +5,7 @@
 #
 import argparse
 
+#
 parser = argparse.ArgumentParser()
 parser.add_argument('path')
 args = parser.parse_args()
@@ -14,9 +15,16 @@ path = args.path
 #
 data = open(path, 'rb').read()
 
-strdata = ''
+if len(data)!=0:
+	#
+	#
+	#
 
-for i in range(0, len(data)):
-	strdata += hex(ord(data[i])) + ', '
+	#
+	strdata = ''
 
-print(strdata)
+	for i in range(0, len(data)-1):
+		strdata += hex(data[i]) + ', '
+	strdata += hex(data[len(data)-1])
+
+	print(strdata)
