@@ -65,7 +65,7 @@ def saveasrid(im, path):
 	f.close()
 
 #
-def export(im, r, c, s, folder, id):
+def export(im, r, c, s, folder, id, list):
 	#
 	nrows = im.shape[0]
 	ncols = im.shape[1]
@@ -96,13 +96,12 @@ def export(im, r, c, s, folder, id):
 		s = ratio*s
 
 	#
-	file = open(folder + '/' + id + '.dat', 'w')
-	file.write(id + '.rid\n')
+	list.write(id + '.rid\n')
 
 	#
 	nrands = 7;
 
-	file.write('%d\n' % nrands)
+	list.write('\t%d\n' % nrands)
 
 	for i in range(0, nrands):
 		#
@@ -126,13 +125,15 @@ def export(im, r, c, s, folder, id):
 
 			response = input('Press Enter to continue...')
 
-		file.write('%f %f %f\n' % (rtmp, ctmp, stmp))
+		list.write('\t%f %f %f\n' % (rtmp, ctmp, stmp))
 
-	file.close()
+	list.write('\n')
+	list.flush()
 
+	#
 	saveasrid(im, folder + '/' + id + '.rid')
 
-def exportmirrored(im, r, c, s, folder, id):
+def exportmirrored(im, r, c, s, folder, id, list):
 	#
 	# exploit mirror symmetry of the face
 	#
@@ -144,7 +145,7 @@ def exportmirrored(im, r, c, s, folder, id):
 	c = im.shape[1] - c
 
 	# export
-	export(im, r, c, s, folder, id)
+	export(im, r, c, s, folder, id, list)
 
 # image list
 imlist = open(srcfolder + '/Subsets/GENKI-SZSL/GENKI-SZSL_Images.txt', 'r').readlines()
@@ -160,9 +161,6 @@ list = open(dstfolder + '/list.txt', 'w')
 n = 0
 
 for i in range(0, len(rs)):
-	#
-	data = line.split()
-
 	# image path
 	path = srcfolder + '/files/' + imlist[i].strip()
 
@@ -182,17 +180,13 @@ for i in range(0, len(rs)):
 	im = numpy.asarray(im)
 
 	#
-	id = 'obj' + str(n)
-	export(im, r, c, s, dstfolder, id)
-	list.write(id + '.dat\n')
-	list.flush()
+	id = 'face' + str(n)
+	export(im, r, c, s, dstfolder, id, list)
 	n = n+1
 
 	# faces are symmetric and we exploit this here
-	id = 'obj' + str(n)
-	exportmirrored(im, r, c, s, dstfolder, id)
-	list.write(id + '.dat\n')
-	list.flush()
+	id = 'face' + str(n)
+	exportmirrored(im, r, c, s, dstfolder, id, list)
 	n = n+1
 
 #

@@ -71,7 +71,7 @@ for dirpath, dirnames, filenames in os.walk(srcfolder):
 		#
 		im = numpy.asarray(im)
 
-		name = ( 'img%05d' % n ) + '-' + filename + '.rid'
+		name = ( '%05d' % n ) + '-' + filename + '.rid'
 		saveasrid(im, dstfolder + '/' + name)
 
 		list.write(name + '\n')

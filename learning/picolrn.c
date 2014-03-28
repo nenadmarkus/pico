@@ -510,19 +510,15 @@ int load_object_samples(const char* folder)
 	list = fopen(buffer, "r");
 
 	if(!list)
-	{
-		printf("- cannot load object samples: the list file is not provided ...\n");
-
 		return 0;
-	}
 
 	//
 	numos = 0;
 
-	while(fscanf(list, "%s", buffer) == 1)
+	while(fscanf(list, "%s", buffer) == 1) // read image name
 	{
-		FILE* file;
-		char tmp[1024];
+		char fullpath[1024];
+
 		int nrows, ncols;
 		uint8_t* opixels;
 		int i, n;
@@ -530,26 +526,19 @@ int load_object_samples(const char* folder)
 		//
 		if(numos >= MAXNUMOS)
 		{
-			printf("- maximum allowed number of object samples exceeded: terminating ...\n");
+			printf("maximum allowed number of object samples exceeded: terminating ...\n");
 
 			return 0;
 		}
 
-		//
-		sprintf(tmp, "%s/%s", folder, buffer);
-		file = fopen(tmp, "r");
-
 		// load image
-		if(fscanf(file, "%s", tmp) != 1) // name
-			return 0;
+		sprintf(fullpath, "%s/%s", folder, buffer);
 
-		sprintf(buffer, "%s/%s", folder, tmp); // full path
-
-		if(!loadrid(&opixels, &nrows, &ncols, buffer))
+		if(!loadrid(&opixels, &nrows, &ncols, fullpath))
 			return 0;
 
 		// number of samples associated with this image
-		if(fscanf(file, "%d", &n) != 1)
+		if(fscanf(list, "%d", &n) != 1)
 			return 0;
 
 		// get samples
@@ -558,7 +547,7 @@ int load_object_samples(const char* folder)
 			float r, c, s;
 
 			//
-			if(fscanf(file, "%f %f %f", &r, &c, &s) != 3)
+			if(fscanf(list, "%f %f %f", &r, &c, &s) != 3)
 				return 0;
 
 			//
@@ -574,9 +563,6 @@ int load_object_samples(const char* folder)
 			//
 			++numos;
 		}
-
-		//
-		fclose(file);
 	}
 
 	fclose(list);
@@ -602,7 +588,7 @@ int load_background_images(char* folder)
 	char path[1024], name[1024];
 
 	//
-	printf("Loading object samples from '%s'\n", folder);
+	printf("Loading background images from '%s'\n", folder);
 
 	//
 	sprintf(path, "%s/list.txt", folder);
@@ -1232,7 +1218,7 @@ int main(int argc, char* argv[])
 		printf("cannot load object samples ... exiting ...\n");
 		return 1;
 	}
-	printf("%d object samples loaded in %f seconds\n", numos, getticks()-t);
+	printf("%d object samples loaded in %f [s]\n", numos, getticks()-t);
 
 	//
 	t = getticks();
@@ -1241,7 +1227,7 @@ int main(int argc, char* argv[])
 		printf("cannot load background images ... exiting ...\n");
 		return 1;
 	}
-	printf("%d background images loaded in %f seconds\n", numbs, getticks()-t);
+	printf("%d background images loaded in %f [s]\n", numbs, getticks()-t);
 
 	//
 	t = getticks();
