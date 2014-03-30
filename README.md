@@ -1,6 +1,7 @@
 # Pixel Intensity Comparison-based Object detection (pico)
 
-Those of you who would like to quickly see what this repository is all about, go to the folder **runtime/samples/C**. There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
+Those of you who would like to quickly see what this repository is all about, go to the folder **runtime/samples/C**.
+There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
 
 In general, detection can be described as a task of finding the positions and scales of all objects in an image that belong to a given appearance class.
 For example, these objects could be cars, pedestrians or human faces.
