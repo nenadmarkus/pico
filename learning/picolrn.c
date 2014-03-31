@@ -633,7 +633,7 @@ struct
 
 } odetector;
 
-int classify_region(float* o, float r, float c, float s, unsigned char pixels[], int nrows, int ncols, int ldim)
+int classify_region(float* o, float r, float c, float s, uint8_t pixels[], int nrows, int ncols, int ldim)
 {
 	int i, j;
 	float ir, ic, isr, isc;
@@ -886,7 +886,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 	return 1;
 }
 
-float sample_training_data(int classs[], float rs[], float cs[], float ss[], unsigned char* pixelss[], int nrowss[], int ncolss[], int ldims[], float os[], int maxn, int* np, int* nn)
+float sample_training_data(int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], float os[], int maxn, int* np, int* nn)
 {
 	int i, n;
 
