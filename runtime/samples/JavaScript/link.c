@@ -17,6 +17,8 @@
  *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#define _INLINE_BINTEST_
+
 #include "../../picort.c"
 
 int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
@@ -29,5 +31,5 @@ int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetection
 
 	int minfacesize = 100;
 
-	return find_objects(rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, (nrows>ncols)?ncols:nrows, 1);
+	return find_objects(0.0f, rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, (nrows>ncols)?ncols:nrows, 1);
 }

@@ -5,7 +5,8 @@
 
 #include <time.h>
 
-#include "../../picort.h"
+#define _INLINE_BINTEST_
+#include "../../picort.c"
 
 /*
 	portable time function
@@ -52,13 +53,7 @@ float getticks()
 	object detection parameters
 */
 
-#ifndef QCUTOFF
-#define QCUTOFF 3.0f
-#endif
-
-#ifndef MINSIZE
-#define MINSIZE 100
-#endif
+#define QCUTOFF 0.0f
 
 #ifndef SCALEFACTOR
 #define SCALEFACTOR 1.2f
@@ -72,7 +67,7 @@ float getticks()
 	
 */
 
-int minsize = MINSIZE;
+int minsize;
 
 float process_image(IplImage* frame, int niters)
 {
@@ -112,7 +107,7 @@ float process_image(IplImage* frame, int niters)
 	tstart = getticks();
 
 	for(i=0; i<niters; ++i)
-		find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
+		find_objects(0.0f, rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
 
 	tend = getticks();
 

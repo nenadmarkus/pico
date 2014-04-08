@@ -17,10 +17,7 @@
  *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
-	
-*/
-
+#include <math.h>
 #include <stdint.h>
 
 /*
@@ -35,15 +32,59 @@
 #define MIN(a, b) ((a)<(b)?(a):(b))
 #endif
 
-#define BINTEST(f, r, c, sr, sc, pixels, nrows, ncols, ldim) \
-		(	\
-			((pixels)[((256*(r)+((int8_t*)&(f))[0]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[1]*(sc))/256)]<=(pixels)[((256*(r)+((int8_t*)&(f))[2]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[3]*(sc))/256)])	\
-		)
+static int _FIXED_POINT_SCALE_ = (1<<15);
 
 /*
 	
 */
-	float get_dtree_output(int8_t tree[], int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
+
+	int _bintest(int tcode, int r, int c, int sr, int sc, int cost, int sint, uint8_t pixels[], int nrows, int ncols, int ldim)
+	{
+		//
+		int r1, c1, r2, c2;
+		int8_t* p = (int8_t*)&tcode;
+
+		//
+		r1 = (p[0]*sr*cost - p[1]*sc*sint)/_FIXED_POINT_SCALE_;
+		c1 = (p[0]*sr*sint + p[1]*sc*cost)/_FIXED_POINT_SCALE_;
+
+		r2 = (p[2]*sr*cost - p[3]*sc*sint)/_FIXED_POINT_SCALE_;
+		c2 = (p[2]*sr*sint + p[3]*sc*cost)/_FIXED_POINT_SCALE_;
+
+		//
+		r1 = (256*r + r1)/256;
+		c1 = (256*c + c1)/256;
+
+		r2 = (256*r + r2)/256;
+		c2 = (256*c + c2)/256;
+
+		// clamp to image boundaries
+		r1 = MAX(0, MIN(nrows-1, r1));
+		c1 = MAX(0, MIN(ncols-1, c1));
+
+		r2 = MAX(0, MIN(nrows-1, r2));
+		c2 = MAX(0, MIN(ncols-1, c2));
+
+		//
+		return pixels[r1*ldim+c1]<=pixels[r2*ldim+c2];
+	}
+
+#ifdef _INLINE_BINTEST_
+	/*
+		An inline version of the binary test function.
+	*/
+	#define bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) \
+		(	\
+			((pixels)[((256*(r)+((int8_t*)&(f))[0]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[1]*(sc))/256)]<=(pixels)[((256*(r)+((int8_t*)&(f))[2]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[3]*(sc))/256)])	\
+		)
+#else
+	#define bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) _bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim)
+#endif
+
+/*
+	
+*/
+	float get_dtree_output(int8_t tree[], int r, int c, int sr, int sc, int cost, int sint, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
 		int d, idx;
 
@@ -61,7 +102,7 @@
 
 		for(d=0; d<tdepth; ++d)
 		{
-			if( BINTEST(tcodes[idx], r, c, sr, sc, pixels, nrows, ncols, ldim) )
+			if( bintest(tcodes[idx], r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) )
 				idx = 2*idx + 2;
 			else
 				idx = 2*idx + 1;
@@ -85,12 +126,13 @@
 /*
 	
 */
-	int classify_region(void* od, float* o, float r, float c, float s, uint8_t pixels[], int nrows, int ncols, int ldim)
+	int classify_region(void* od, float* o, float r, float c, float s, int cost, int sint, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
 		int8_t* ptr;
 		int loc;
 
 		int32_t nstages;
+		float tr, tc, tsr, tsc;
 
 		int i, j;
 		int ir, ic, isr, isc;
@@ -103,12 +145,18 @@
 		*o = 0.0f;
 
 		//
-		ir = (int)( r + s**(float*)&ptr[0*sizeof(float)] );
-		ic = (int)( c + s**(float*)&ptr[1*sizeof(float)] );
-		isr = (int)( s**(float*)&ptr[2*sizeof(float)] );
-		isc = (int)( s**(float*)&ptr[3*sizeof(float)] );
+		tr = *(float*)&ptr[0*sizeof(float)];
+		tc = *(float*)&ptr[1*sizeof(float)];
+		tsr = *(float*)&ptr[2*sizeof(float)];
+		tsc = *(float*)&ptr[3*sizeof(float)];
 
 		loc += 4*sizeof(float);
+
+		//
+		ir = (int)( r + s*(tr*cost-tc*sint)/_FIXED_POINT_SCALE_ );
+		ic = (int)( c + s*(tr*sint+tc*cost)/_FIXED_POINT_SCALE_ );
+		isr = (int)(s*tsr);
+		isc = (int)(s*tsc);
 
 		//
 		nstages = *(int32_t*)&ptr[loc];
@@ -116,6 +164,9 @@
 
 		if(!nstages)
 			return 0;
+
+		// check if rotated bb corners get out of image
+		// TODO:
 
 		//
 		i = 0;
@@ -132,7 +183,7 @@
 			for(j=0; j<numtrees; ++j)
 			{
 				//
-				*o += get_dtree_output(&ptr[loc], ir, ic, isr, isc, pixels, nrows, ncols, ldim);
+				*o += get_dtree_output(&ptr[loc], ir, ic, isr, isc, cost, sint, pixels, nrows, ncols, ldim);
 
 				loc += get_dtree_size(&ptr[loc]);
 			}
@@ -272,14 +323,24 @@
 		return idx;
 	}
 
-	int find_objects(float rs[], float cs[], float ss[], float qs[], int maxndetections,
+	int find_objects(float ccwangle, float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						void* od,
 						void* pixels, int nrows, int ncols, int ldim,
 						float scalefactor, float stridefactor, float minsize, float maxsize,
 						int clusterdetections)
 	{
-		float s;
+		int cost, sint;
+		float s, ratio;
 		int ndetections;
+
+		//
+#ifdef _INLINE_BINTEST_
+		if( ccwangle != 0.0f )
+			return 0;
+#endif
+
+		cost = (int)( _FIXED_POINT_SCALE_*cos(ccwangle) );
+		sint = (int)( _FIXED_POINT_SCALE_*sin(ccwangle) );
 
 		//
 		ndetections = 0;
@@ -291,16 +352,16 @@
 			float r, c, dr, dc;
 
 			//
-			dr = MAX(stridefactor*s, 1.0f);
-			dc = MAX(stridefactor*s, 1.0f);
+			dr = dc = MAX(stridefactor*s, 1.0f);
 
 			//
 			for(r=s/2+1; r<=nrows-s/2-1; r+=dr)
 				for(c=s/2+1; c<=ncols-s/2-1; c+=dc)
 				{
 					float q;
+					int t;
 
-					if(classify_region(od, &q, r, c, s, pixels, nrows, ncols, ldim)>0)
+					if(classify_region(od, &q, r, c, s, cost, sint, pixels, nrows, ncols, ldim)>0)
 					{
 						if(ndetections < maxndetections)
 						{
@@ -309,6 +370,7 @@
 							cs[ndetections] = c;
 							ss[ndetections] = s;
 
+							//
 							++ndetections;
 						}
 					}

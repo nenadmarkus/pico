@@ -3,7 +3,7 @@
 #
 
 #
-CC=emcc
+CC=/path/to/emcc
 
 #
 output:

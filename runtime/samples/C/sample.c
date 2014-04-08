@@ -22,7 +22,15 @@
 #include <cv.h>
 #include <highgui.h>
 
-#include "../../picort.h"
+/*
+	
+*/
+
+#ifndef _ROTATION_INVARIANT_DETECTION_
+#define _INLINE_BINTEST_
+#endif
+
+#include "../../picort.c"
 
 /*
 	object detection parameters
@@ -83,8 +91,20 @@ void process_image(IplImage* frame, int draw, int print)
 	ncols = gray->width;
 	ldim = gray->widthStep;
 
-	// actually, all the smart stuff happens in the following function
-	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
+	// actually, all the smart stuff happens here
+#ifndef _ROTATION_INVARIANT_DETECTION_
+	ndetections = find_objects(0.0f, rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
+#else
+	// scan the image at 12 different orientations
+	ndetections = 0;
+
+	for(i=0; i<12; ++i)
+	{
+		float orientation = i*2*3.14f/12;
+
+		ndetections += find_objects(orientation, &rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
+	}
+#endif
 
 	// if the flag is set, draw each detection
 	if(draw)
