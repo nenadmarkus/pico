@@ -2,6 +2,7 @@
 
 Those of you who would like to quickly see what this repository is all about, go to the folder **runtime/samples/C**.
 There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
+Also, you can check out a demo video at <http://www.youtube.com/watch?v=1lXfm-PZz0Q>.
 
 In general, detection can be described as a task of finding the positions and scales of all objects in an image that belong to a given appearance class.
 For example, these objects could be cars, pedestrians or human faces.
@@ -29,7 +30,8 @@ Some highlights of **pico** are:
 The folder **runtime/** contains all the needed resources to perform object detection in images and video streams using pre-trained classification cascades.
 Specifically, sample applications that performs face detection can be found in the folder **runtime/samples/**.
 
-Note that the library `picorirt.c` enables rotation invariant object detection.
+Note that the library also enables rotation invariant object detection.
+This option is demonstrated by compiling the samples with a `_ROTATION_INVARIANT_DETECTION_` flag.
 
 ### Embedding pico runtime within your application
 
@@ -37,8 +39,8 @@ To use the runtime in your own application, you have to:
 
 * Include a prototype for a function `find_objects(...)` in your code (for example, by adding `#include picort.h`)
 * Include an encoded object detector of your choice (for example, `facefinder.ea`)
-* Compile `picort.c` or `piorirt.c` with your code (depending do you want rotation invariance or not)
-* Invoke `find_objects(...)` with the right parameters
+* Compile `picort.c` with your code
+* Invoke `find_objects(...)` with appropriate parameters
 
 Notice that there are no specific library dependencies, i.e., the code can be compiled out-of-the-box with a standard C compiler.
 
