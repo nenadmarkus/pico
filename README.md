@@ -64,7 +64,7 @@ If you use the provided code/binaries for your work, please cite the following p
 
 ## Contact
 
-For any additional information contact me at neno.markus@gmail.com or visit <http://public.tel.fer.hr/odet/>.
+For any additional information contact me at <neno.markus@gmail.com> or visit <http://public.tel.fer.hr/odet/>.
 
 Copyright (c) 2013, Nenad Markus.
 All rights reserved.
