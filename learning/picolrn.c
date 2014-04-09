@@ -494,7 +494,6 @@ static float oss[MAXNUMOS];
 static uint8_t* opixelss[MAXNUMOS];
 static int onrowss[MAXNUMOS];
 static int oncolss[MAXNUMOS];
-static int oldims[MAXNUMOS];
 
 int load_object_samples(const char* folder)
 {
@@ -558,7 +557,6 @@ int load_object_samples(const char* folder)
 			opixelss[numos] = opixels;
 			onrowss[numos] = nrows;
 			oncolss[numos] = ncols;
-			oldims[numos] = ncols;
 
 			//
 			++numos;
@@ -739,7 +737,7 @@ int load_from_file(char* path)
 	return 1;
 }
 
-int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int maxnumtrees, int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], float os[], int np, int nn)
+int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int maxnumtrees, int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], float os[], int np, int nn)
 {
 	int i;
 
@@ -814,7 +812,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 		// grow a tree ...
 		t = getticks();
 
-		grow_rtree(&odetector.rtreearrays[stageidx][numtrees], tdepth, tvals, irs, ics, isrs, iscs, pixelss, nrowss, ncolss, ldims, ws, np+nn);
+		grow_rtree(&odetector.rtreearrays[stageidx][numtrees], tdepth, tvals, irs, ics, isrs, iscs, pixelss, nrowss, ncolss, ncolss, ws, np+nn);
 
 		printf("\r");
 		printf("	tree %d (%f [sec]) ...", numtrees+1, getticks()-t);
@@ -827,7 +825,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 			float o;
 
 			//
-			o = get_rtree_output(&odetector.rtreearrays[stageidx][numtrees-1], irs[i], ics[i], isrs[i], iscs[i], pixelss[i], nrowss[i], ncolss[i], ldims[i]);
+			o = get_rtree_output(&odetector.rtreearrays[stageidx][numtrees-1], irs[i], ics[i], isrs[i], iscs[i], pixelss[i], nrowss[i], ncolss[i], ncolss[i]);
 
 			//
 			os[i] += o;
@@ -886,7 +884,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 	return 1;
 }
 
-float sample_training_data(int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], float os[], int maxn, int* np, int* nn)
+float sample_training_data(int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], float os[], int maxn, int* np, int* nn)
 {
 	int i, n;
 
@@ -914,7 +912,7 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 	*/
 
 	for(i=0; i<numos; ++i)
-		if( classify_region(&os[n], ors[i], ocs[i], oss[i], opixelss[i], onrowss[i], oncolss[i], oldims[i])>0 )
+		if( classify_region(&os[n], ors[i], ocs[i], oss[i], opixelss[i], onrowss[i], oncolss[i], oncolss[i])>0 )
 		{
 			//
 			rs[n] = ors[i];
@@ -924,7 +922,6 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 			pixelss[n] = opixelss[i];
 			nrowss[n] = onrowss[i];
 			ncolss[n] = oncolss[i];
-			ldims[n] = oldims[i];
 
 			classs[n] = +1;
 
@@ -997,7 +994,6 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 						pixelss[n] = pixels;
 						nrowss[n] = nrows;
 						ncolss[n] = ncols;
-						ldims[n] = ncols;
 
 						os[n] = o;
 
@@ -1048,11 +1044,8 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 	static uint8_t* pixelss[MAXMAXNUMSAMPLES];
 	static int nrowss[MAXMAXNUMSAMPLES];
 	static int ncolss[MAXMAXNUMSAMPLES];
-	static int ldims[MAXMAXNUMSAMPLES];
 
 	static float os[MAXMAXNUMSAMPLES];
-
-	static int binds[MAXNUMBS];
 
 	//
 	int i, maxnumsamples, maxnumstages, np, nn;
@@ -1064,10 +1057,6 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 	//
 	maxnumstages = odetector.numstages + maxnumstagestoappend;
 	maxnumsamples = 2*numos;
-
-	//
-	for(i=0; i<numbs; ++i)
-		binds[i] = i;
 
 	//
 	np = nn = 0;
@@ -1085,7 +1074,7 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 
 		printf("\n");
 
-		currentfpr = sample_training_data(classs, rs, cs, ss, pixelss, nrowss, ncolss, ldims, os, maxnumsamples, &np, &nn);
+		currentfpr = sample_training_data(classs, rs, cs, ss, pixelss, nrowss, ncolss, os, maxnumsamples, &np, &nn);
 
 		if(currentfpr <= targetfpr)
 		{
@@ -1102,7 +1091,7 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 		printf("- learning stage ...\n");
 		printf("	npositives: %d, nnegatives: %d\n", np, nn);
 
-		learn_new_stage(i, tdepths, minstagetpr, maxstagefpr, maxnumtreesperstage, classs, rs, cs, ss, pixelss, nrowss, ncolss, ldims, os, np, nn);
+		learn_new_stage(i, tdepths, minstagetpr, maxstagefpr, maxnumtreesperstage, classs, rs, cs, ss, pixelss, nrowss, ncolss, os, np, nn);
 
 		/*
 			we have a new stage
