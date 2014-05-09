@@ -373,6 +373,10 @@ int split_training_data(int tcode, float tvals[], int rs[], int cs[], int srs[],
 
 int32_t generate_binary_test()
 {
+
+#ifndef _EXPERIMENTAL_REGULARIZATION_PROCEDURE_
+	return mwcrand();
+#else
 	/*
 		regularizes the training process
 	*/
@@ -399,6 +403,7 @@ int32_t generate_binary_test()
 		if(d1<128*128 && d2<128*128 && d<64*64)
 			return tcode;
 	}
+#endif
 }
 
 int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
