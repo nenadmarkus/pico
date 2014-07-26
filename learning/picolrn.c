@@ -371,41 +371,6 @@ int split_training_data(int tcode, float tvals[], int rs[], int cs[], int srs[],
 	return n0;
 }
 
-int32_t generate_binary_test()
-{
-
-#ifndef _EXPERIMENTAL_REGULARIZATION_PROCEDURE_
-	return mwcrand();
-#else
-	/*
-		regularizes the training process
-	*/
-
-	while(1)
-	{
-		int32_t tcode;
-		int8_t* p;
-
-		int d, d1, d2;
-
-		//
-		tcode = mwcrand();
-
-		p = (int8_t*)&tcode;
-
-		//
-		d1 = p[0]*p[0] + p[1]*p[1]; // distance from (0, 0) for the first pixel
-		d2 = p[2]*p[2] + p[3]*p[3]; // distance from (0, 0) for the second pixel
-
-		d = (p[0]-p[2])*(p[0]-p[2]) + (p[1]-p[3])*(p[1]-p[3]); // distance between two pixels
-
-		//
-		if(d1<128*128 && d2<128*128 && d<64*64)
-			return tcode;
-	}
-#endif
-}
-
 int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
 {
 	int i, nrands;
@@ -458,7 +423,7 @@ int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[]
 	nrands = NRANDS;
 
 	for(i=0; i<nrands; ++i)
-		tcodes[i] = generate_binary_test();
+		tcodes[i] = mwcrand();
 
 	//
 	#pragma omp parallel for
