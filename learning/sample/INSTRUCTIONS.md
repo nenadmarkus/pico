@@ -1,4 +1,4 @@
-This tutorial will guide you through learning your own face detector.
+This tutorial will guide you through the process of learning your own face detector.
 
 ## 1. Get faces (positive training samples):
 

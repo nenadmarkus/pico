@@ -148,16 +148,14 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 		*o = 0.0f;
 
 		//
-		tr = *(float*)&ptr[0*sizeof(float)];
-		tc = *(float*)&ptr[1*sizeof(float)];
-		tsr = *(float*)&ptr[2*sizeof(float)];
-		tsc = *(float*)&ptr[3*sizeof(float)];
+		tsr = *(float*)&ptr[0*sizeof(float)];
+		tsc = *(float*)&ptr[1*sizeof(float)];
 
-		loc += 4*sizeof(float);
+		loc += 2*sizeof(float);
 
 		//
-		ir = (int)( r + s*(tr*cost-tc*sint)/_FIXED_POINT_SCALE_ );
-		ic = (int)( c + s*(tr*sint+tc*cost)/_FIXED_POINT_SCALE_ );
+		ir = (int)( r );
+		ic = (int)( c );
 		isr = (int)(s*tsr);
 		isc = (int)(s*tsc);
 
@@ -167,9 +165,6 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 
 		if(!nstages)
 			return 0;
-
-		// check if rotated bb corners get out of image
-		// TODO:
 
 		//
 		i = 0;
@@ -333,7 +328,7 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 						int clusterdetections)
 	{
 		int cost, sint;
-		float s, ratio;
+		float s;
 		int ndetections;
 
 		//

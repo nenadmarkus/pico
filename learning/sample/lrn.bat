@@ -19,7 +19,7 @@ preparebackground.py %2 nonfaces
 ::
 
 :: create an object detector
-picolrn.exe 0 0 1 1 d > log.txt
+picolrn.exe 1 1 d > log.txt
 
 :: append stages
 picolrn.exe d faces nonfaces 1 1e-6 6 0.980 0.5 1 d >> log.txt

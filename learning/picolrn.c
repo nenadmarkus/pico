@@ -620,7 +620,7 @@ int load_background_images(char* folder)
 
 struct
 {
-	float tr, tc, tsr, tsc;
+	float tsr, tsc;
 
 	int numstages;
 
@@ -644,8 +644,8 @@ int classify_region(float* o, float r, float c, float s, uint8_t pixels[], int n
 		return 1;
 
 	//
-	ir = (int)( r + odetector.tr*s );
-	ic = (int)( c + odetector.tc*s );
+	ir = (int)( r );
+	ic = (int)( c );
 
 	isr = (int)( odetector.tsr*s );
 	isc = (int)( odetector.tsc*s );
@@ -681,8 +681,6 @@ int save_to_file(char* path)
 		return 0;
 
 	//
-	fwrite(&odetector.tr, sizeof(float), 1, f);
-	fwrite(&odetector.tc, sizeof(float), 1, f);
 	fwrite(&odetector.tsr, sizeof(float), 1, f);
 	fwrite(&odetector.tsc, sizeof(float), 1, f);
 
@@ -714,8 +712,6 @@ int load_from_file(char* path)
 		return 0;
 
 	//
-	fread(&odetector.tr, sizeof(float), 1, f);
-	fread(&odetector.tc, sizeof(float), 1, f);
 	fread(&odetector.tsr, sizeof(float), 1, f);
 	fread(&odetector.tsc, sizeof(float), 1, f);
 
@@ -773,8 +769,8 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 
 	for(i=0; i<np+nn; ++i)
 	{
-		irs[i] = (int)( rs[i] + odetector.tr*ss[i] );
-		ics[i] = (int)( cs[i] + odetector.tc*ss[i] );
+		irs[i] = (int)( rs[i] );
+		ics[i] = (int)( cs[i] );
 
 		isrs[i] = (int)( odetector.tsr*ss[i] );
 		iscs[i] = (int)( odetector.tsc*ss[i] );
@@ -1155,22 +1151,20 @@ int main(int argc, char* argv[])
 	int tdepths, maxnumtreesperstage;
 
 	//
-	if(argc == 6)
+	if(argc == 4)
 	{
-		sscanf(argv[1], "%f", &odetector.tr);
-		sscanf(argv[2], "%f", &odetector.tc);
-		sscanf(argv[3], "%f", &odetector.tsr);
-		sscanf(argv[4], "%f", &odetector.tsc);
+		sscanf(argv[1], "%f", &odetector.tsr);
+		sscanf(argv[2], "%f", &odetector.tsc);
 
 		//
 		odetector.numstages = 0;
 
 		//
-		if(!save_to_file(argv[5]))
+		if(!save_to_file(argv[3]))
 			return 0;
 
 		//
-		printf("INITIALIZING: (%f, %f, %f, %f)\n", odetector.tr, odetector.tc, odetector.tsr, odetector.tsc);
+		printf("INITIALIZING: (%f, %f)\n", odetector.tsr, odetector.tsc);
 
 		//
 		return 0;
