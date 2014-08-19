@@ -60,7 +60,7 @@ A tutorial that guides you through the process of learning a face detector can b
 ## Citation
 
 If you use the provided code/binaries for your work, please cite the following paper:
-> N. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer, "A Method for Object Detection Based on Pixel Intensity Comparisons", <http://arxiv.org/abs/1305.4537>
+> N. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer, "Object Detection with Pixel Intensity Comparisons Organized in Decision Trees", <http://arxiv.org/abs/1305.4537>
 
 ## Contact
 
