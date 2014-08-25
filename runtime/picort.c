@@ -4,7 +4,7 @@
  *
  *	This is an implementation of the algorithm described in the following paper:
  *		N. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer,
- *		A method for object detection based on pixel intensity comparisons,
+ *		Object Detection with Pixel Intensity Comparisons Organized in Decision Trees,
  *		http://arxiv.org/abs/1305.4537
  *
  *	Redistribution and use of this program as source code or in binary form, with or without modifications, are permitted provided that the following conditions are met:
