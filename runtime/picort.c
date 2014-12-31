@@ -19,6 +19,8 @@
 
 #include <stdint.h>
 
+#include "det"
+
 #ifndef _INLINE_BINTEST_
 #include <math.h>
 #endif
@@ -76,9 +78,17 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 	/*
 		An inline version of the binary test function.
 	*/
+	/*
 	#define bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) \
 		(	\
 			((pixels)[((256*(r)+((int8_t*)&(f))[0]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[1]*(sc))/256)]<=(pixels)[((256*(r)+((int8_t*)&(f))[2]*(sr))/256)*(ldim)+((256*(c)+((int8_t*)&(f))[3]*(sc))/256)])	\
+		)
+	*/
+	#define bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) \
+		(	\
+			(pixels)[(((int8_t*)&(f))[0]*(sr))/256*(ldim)+(((int8_t*)&(f))[1]*(sc))/256]	\
+				<=	\
+			(pixels)[(((int8_t*)&(f))[2]*(sr))/256*(ldim)+(((int8_t*)&(f))[3]*(sc))/256]	\
 		)
 #else
 	#define bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim) _bintest(f, r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim)
@@ -89,6 +99,7 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 */
 	float get_dtree_output(int8_t tree[], int r, int c, int sr, int sc, int cost, int sint, uint8_t pixels[], int nrows, int ncols, int ldim)
 	{
+		/*
 		int d, idx;
 
 		int32_t tdepth;
@@ -113,6 +124,34 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 
 		//
 		return tlut[idx - ((1<<tdepth)-1)];
+		*/
+
+		int d, idx;
+
+		int32_t tdepth;
+		int32_t* tcodes;
+		float* tlut;
+
+		//
+		tdepth = *(int32_t*)&tree[0];
+		tcodes = -1+(int32_t*)&tree[sizeof(int32_t)];
+		tlut = (float*)&tree[(1+((1<<tdepth)-1))*sizeof(int32_t)];
+
+		pixels = &pixels[r*ldim+c];
+
+		//
+		idx = 1;
+
+		for(d=0; d<tdepth; ++d)
+		{
+			idx = 2*idx + bintest(tcodes[idx], r, c, sr, sc, cost, sint, pixels, nrows, ncols, ldim);
+			///printf("%d ", idx);
+		}
+
+		//printf("%d (%f) ", idx, tlut[idx - ((1<<tdepth)-1) - 1]);
+
+		//
+		return tlut[idx - ((1<<tdepth)-1) - 1];
 	}
 
 	int get_dtree_size(int8_t dtree[])
@@ -192,7 +231,10 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 
 			//
 			if(*o <= threshold)
+			{
+				//printf("\n%d %d, %f <= %f\n", i, j, *o, threshold);
 				return -1;
+			}
 
 			//
 			++i;
@@ -343,6 +385,15 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 #endif
 
 		//
+		/*
+		classify_region(od, &s, 151, 441, 50, cost, sint, pixels, nrows, ncols, ldim);
+		printf("%f\n", s);
+		detect_faces(&s, 151, 441, 50, pixels, nrows, ncols, ldim);
+		printf("%f\n", s);
+		exit(1);
+		*/
+
+		//
 		ndetections = 0;
 
 		s = minsize;
@@ -361,7 +412,21 @@ static int _FIXED_POINT_SCALE_ = (1<<15);
 					float q;
 					int t;
 
-					if(classify_region(od, &q, r, c, s, cost, sint, pixels, nrows, ncols, ldim)>0)
+					/*
+					if
+					(
+						classify_region(od, &q, r, c, s, cost, sint, pixels, nrows, ncols, ldim)
+							!=
+						detect_faces(&q, r, c, s, pixels, nrows, ncols, ldim)
+					)
+					{
+						printf("\n%f %f %f\n", r, c, s);
+						exit(1);
+					}
+					*/
+
+					//if(classify_region(od, &q, r, c, s, cost, sint, pixels, nrows, ncols, ldim)>0)
+					if(detect_faces(&q, r, c, s, pixels, nrows, ncols, ldim) > 0)
 					{
 						if(ndetections < maxndetections)
 						{

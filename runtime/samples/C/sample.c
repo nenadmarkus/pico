@@ -53,6 +53,47 @@
 #endif
 
 /*
+	portable time function
+*/
+
+#ifdef __GNUC__
+#include <time.h>
+float getticks()
+{
+	struct timespec ts;
+
+	if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+	{
+		printf("clock_gettime error\n");
+
+		return -1.0f;
+	}
+
+	return ts.tv_sec + 1e-9f*ts.tv_nsec;
+}
+#else
+#include <windows.h>
+float getticks()
+{
+	static double freq = -1.0;
+	LARGE_INTEGER lint;
+
+	if(freq < 0.0)
+	{
+		if(!QueryPerformanceFrequency(&lint))
+			return -1.0f;
+
+		freq = lint.QuadPart;
+	}
+
+	if(!QueryPerformanceCounter(&lint))
+		return -1.0f;
+
+	return (float)( lint.QuadPart/freq );
+}
+#endif
+
+/*
 	
 */
 
@@ -61,6 +102,7 @@ int minsize = MINSIZE;
 void process_image(IplImage* frame, int draw, int print)
 {
 	int i;
+	float t;
 
 	unsigned char* pixels;
 	int nrows, ncols, ldim;
@@ -92,6 +134,7 @@ void process_image(IplImage* frame, int draw, int print)
 	ldim = gray->widthStep;
 
 	// actually, all the smart stuff happens here
+	t = getticks();
 #ifndef _ROTATION_INVARIANT_DETECTION_
 	ndetections = find_objects(0.0f, rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
 #else
@@ -106,6 +149,8 @@ void process_image(IplImage* frame, int draw, int print)
 	}
 #endif
 
+	t = getticks() - t;
+
 	// if the flag is set, draw each detection
 	if(draw)
 		for(i=0; i<ndetections; ++i)
@@ -115,9 +160,13 @@ void process_image(IplImage* frame, int draw, int print)
 	// if the flag is set, print the results to standard output
 	if(print)
 	{
+		//
 		for(i=0; i<ndetections; ++i)
 			if(qs[i]>=QCUTOFF) // check the confidence threshold
 				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
+
+		//
+		printf("# %f\n", 1000.0f*t);
 	}
 }
 
