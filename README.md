@@ -38,8 +38,8 @@ This option is demonstrated by compiling the samples with a `_ROTATION_INVARIANT
 To use the runtime in your own application, you have to:
 
 * Include a prototype for a function `find_objects(...)` in your code (for example, by adding `#include picort.h`)
-* Include an encoded object detector of your choice (for example, `facefinder.ea`)
-* Compile `picort.c` with your code
+* Include an image region classifier function (generated with `picogen.c`; for example, `is_region_a_face.c`)
+* Compile `picornt.c` with your code
 * Invoke `find_objects(...)` with appropriate parameters
 
 Notice that there are no specific library dependencies, i.e., the code can be compiled out-of-the-box with a standard C compiler.
@@ -51,7 +51,7 @@ To get a feel for how the library works, we recommend that you look at `sample.c
 The program `picolrn.c` (available in the folder **learning/**) enables you to learn your own (custom) object detectors.
 The training data has to be provided in a specific format.
 The details are printed to the standard output when `picolrn` is invoked without parameters.
-It is often convenient to pipe this information to a text file:
+It is often convenient to pipe this information into a text file:
 
     $ ./picolrn > howto.txt
 
@@ -64,7 +64,7 @@ If you use the provided code/binaries for your work, please cite the following p
 
 ## Contact
 
-For any additional information contact me at <neno.markus@gmail.com> or visit <http://public.tel.fer.hr/odet/>.
+For any additional information contact me at <nenad.markus@fer.hr> or visit <http://public.tel.fer.hr/odet/>.
 
 Copyright (c) 2013, Nenad Markus.
 All rights reserved.
