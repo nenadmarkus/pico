@@ -17,19 +17,18 @@
  *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#define _INLINE_BINTEST_
+#include "../../picornt.c"
 
-#include "../../picort.c"
+#include "is_region_a_face"
 
 int find_faces(float rs[], float cs[], float ss[], float qs[], int maxndetections,
 						unsigned char pixels[], int nrows, int ncols, int ldim)
 {
-	static char facefinder[] =
-	{
-		#include "../../cascades/facefinder.ea"
-	};
+	int n;
 
-	int minfacesize = 100;
+	//
+	n = find_objects(rs, cs, ss, qs, maxndetections, is_region_a_face, pixels, nrows, ncols, ldim, 1.2f, 0.1f, 100, (nrows>ncols)?ncols:nrows);
 
-	return find_objects(0.0f, rs, cs, ss, qs, maxndetections, facefinder, pixels, nrows, ncols, ldim, 1.2f, 0.1f, minfacesize, (nrows>ncols)?ncols:nrows, 1);
+	//
+	return cluster_detections(rs, cs, ss, qs, n);
 }

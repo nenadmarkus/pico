@@ -22,15 +22,10 @@
 #include <cv.h>
 #include <highgui.h>
 
-/*
-	
-*/
+//
+#include "../../picornt.h"
 
-#ifndef _ROTATION_INVARIANT_DETECTION_
-#define _INLINE_BINTEST_
-#endif
-
-#include "../../picornt.c"
+#include "is_region_a_face"
 
 /*
 	object detection parameters
@@ -38,10 +33,6 @@
 
 #ifndef QCUTOFF
 #define QCUTOFF 3.0f
-#endif
-
-#ifndef MINSIZE
-#define MINSIZE 100
 #endif
 
 #ifndef SCALEFACTOR
@@ -97,7 +88,7 @@ float getticks()
 	
 */
 
-int minsize = MINSIZE;
+int minsize = 100;
 
 void process_image(IplImage* frame, int draw, int print)
 {
@@ -135,20 +126,8 @@ void process_image(IplImage* frame, int draw, int print)
 
 	// actually, all the smart stuff happens here
 	t = getticks();
-#ifndef _ROTATION_INVARIANT_DETECTION_
-	ndetections = find_objects(0.0f, rs, cs, ss, qs, MAXNDETECTIONS, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
-#else
-	// scan the image at 12 different orientations
-	ndetections = 0;
-
-	for(i=0; i<12; ++i)
-	{
-		float orientation = i*2*3.14f/12;
-
-		ndetections += find_objects(orientation, &rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, appfinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols), 1);
-	}
-#endif
-
+	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, is_region_a_face, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols));
+	ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
 	t = getticks() - t;
 
 	// if the flag is set, draw each detection

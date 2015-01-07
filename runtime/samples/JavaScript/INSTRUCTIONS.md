@@ -1,5 +1,9 @@
 ## Compiling
 
+Currently broken! Will fix in the future.
+
+-----------------------------------------
+
 To compile, you will need:
 
 * `emscripten`, <https://github.com/kripken/emscripten/wiki>
