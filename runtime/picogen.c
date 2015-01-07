@@ -71,11 +71,46 @@ int load_cascade_old(const char* path)
 	return 1;
 }
 
+int load_cascade(const char* path)
+{
+	int i, j, nstages;
+	FILE* file;
+
+	//
+	file = fopen(path, "rb");
+
+	if(!file)
+		return 0;
+
+	//
+	fread(&tsr, sizeof(float), 1, file);
+	fread(&tsc, sizeof(float), 1, file);
+
+	fread(&tdepth, sizeof(int), 1, file);
+
+	fread(&ntrees, sizeof(int), 1, file);
+
+	//
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		fread(&tcodes[ntrees][0], sizeof(int32_t), (1<<tdepth)-1, file);
+		fread(&luts[ntrees][0], sizeof(float), 1<<tdepth, file);
+		fread(&thresholds[ntrees], sizeof(float), 1, file);
+	}
+
+	//
+	fclose(file);
+
+	//
+	return 1;
+}
+
 /*
 	
 */
 
-void write_detector(const char* name)
+void print_c_code(const char* name, float rotation)
 {
 	int i, j;
 
@@ -126,13 +161,15 @@ void write_detector(const char* name)
 	printf("	sr = (int)(%ff*s);\n", tsr);
 	printf("	sc = (int)(%ff*s);\n", tsc);
 	printf("	*o = 0.0f;\n\n");
-	printf("	pixels = &pixels[r*ldim+c];\n");
+	///printf("	pixels = &pixels[r*ldim+c];\n");
 	printf("	for(i=0; i<%d; ++i)\n", ntrees);
 	printf("	{\n");
 	printf("		idx = 1;\n");
 	for(i=0; i<tdepth; ++i)
 	{
-		printf("		idx = 2*idx + (pixels[tcodes[i][idx][0]*sr/256*ldim + tcodes[i][idx][1]*sc/256]<=pixels[tcodes[i][idx][2]*sr/256*ldim + tcodes[i][idx][3]*sc/256]);\n");
+		printf("		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);\n");
+		///printf("		idx = 2*idx + (pixels[tcodes[i][idx][0]*sr/256*ldim + tcodes[i][idx][1]*sc/256]<=pixels[tcodes[i][idx][2]*sr/256*ldim + tcodes[i][idx][3]*sc/256]);\n");
+
 	}
 	printf("\n		*o = *o + lut[i][idx-%d];\n\n", 1<<tdepth);
 	printf("		if(*o<=thresholds[i])\n\t\t\treturn -1;\n");
@@ -151,15 +188,29 @@ void write_detector(const char* name)
 
 int main(int argc, char* argv[])
 {
+	float rotation;
+
 	//
-	if(argc!=2)
+	if(argc!=4)
+	{
+		printf("* specify arguments: cascade, in-plane rotation, detection function name.\n");
 		return 0;
+	}
 
 	//
 	load_cascade_old(argv[1]);
 
 	//
-	write_detector("detect_faces");
+	sscanf(argv[2], "%f", &rotation);
+
+	if(rotation != 0.0f)
+	{
+		printf("TODO: rotations\n");
+		return 0;
+	}
+
+	//
+	print_c_code(argv[3], rotation);
 
 	//
 	return 0;

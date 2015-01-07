@@ -30,7 +30,7 @@
 #define _INLINE_BINTEST_
 #endif
 
-#include "../../picort.c"
+#include "../../picornt.c"
 
 /*
 	object detection parameters

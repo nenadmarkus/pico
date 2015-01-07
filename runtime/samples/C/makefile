@@ -12,4 +12,4 @@ output:
 	#
 	# Compiling face detection sample ...
 	#
-	$(CC) sample.c -lm -lrt $(OPENCV) -O3 -DQCUTOFF=3.0 -o exe
+	$(CC) sample.c -lm -lrt $(OPENCV) -O3 -DQCUTOFF=3.0 -o pico
