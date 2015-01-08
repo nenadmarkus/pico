@@ -104,12 +104,6 @@ void process_image(IplImage* frame, int draw, int print)
 
 	static IplImage* gray = 0;
 
-	// a structure that encodes object appearance
-	static char appfinder[] =
-		{
-			#include "../../cascades/facefinder.ea"
-		};
-
 	// grayscale image
 	if(!gray)
 		gray = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, 1);

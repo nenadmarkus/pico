@@ -1151,16 +1151,18 @@ int main(int argc, char* argv[])
 	int tdepths, maxnumtreesperstage;
 
 	//
-	if(argc == 4)
+	if(argc == 5)
 	{
 		sscanf(argv[1], "%f", &odetector.tsr);
 		sscanf(argv[2], "%f", &odetector.tsc);
+
+		sscanf(argv[3], "%d", &ntrees);
 
 		//
 		odetector.numstages = 0;
 
 		//
-		if(!save_to_file(argv[3]))
+		if(!save_to_file(argv[4]))
 			return 0;
 
 		//

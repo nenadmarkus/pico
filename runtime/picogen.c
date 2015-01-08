@@ -15,65 +15,13 @@ float luts[1024][1024];
 
 float thresholds[1024];
 
-int load_cascade_old(const char* path)
-{
-	int i, j, nstages;
-	FILE* file;
-
-	//
-	file = fopen(path, "rb");
-
-	if(!file)
-		return 0;
-
-	//
-	fread(&tsr, sizeof(float), 1, file);
-	fread(&tsc, sizeof(float), 1, file);
-
-	fread(&nstages, sizeof(int), 1, file);
-
-	//
-	ntrees = 0;
-
-	for(i=0; i<nstages; ++i)
-	{
-		int stagetreecount;
-
-		//
-		fread(&stagetreecount, sizeof(int), 1, file);
-
-		if(stagetreecount)
-		{
-			for(j=0; j<stagetreecount; ++j)
-			{
-				//
-				fread(&tdepth, sizeof(int), 1, file);
-				fread(&tcodes[ntrees][0], sizeof(int32_t), (1<<tdepth)-1, file);
-				fread(&luts[ntrees][0], sizeof(float), 1<<tdepth, file);
-
-				///printf("%d ", tdepth);
-
-				//
-				thresholds[ntrees] = -15.0f;
-
-				//
-				++ntrees;
-			}
-
-			fread(&thresholds[ntrees-1], sizeof(float), 1, file);
-		}
-	}
-
-	//
-	fclose(file);
-
-	//
-	return 1;
-}
+/*
+	
+*/
 
 int load_cascade(const char* path)
 {
-	int i, j, nstages;
+	int i;
 	FILE* file;
 
 	//
@@ -94,9 +42,44 @@ int load_cascade(const char* path)
 	for(i=0; i<ntrees; ++i)
 	{
 		//
-		fread(&tcodes[ntrees][0], sizeof(int32_t), (1<<tdepth)-1, file);
-		fread(&luts[ntrees][0], sizeof(float), 1<<tdepth, file);
-		fread(&thresholds[ntrees], sizeof(float), 1, file);
+		fread(&tcodes[i][0], sizeof(int32_t), (1<<tdepth)-1, file);
+		fread(&luts[i][0], sizeof(float), 1<<tdepth, file);
+		fread(&thresholds[i], sizeof(float), 1, file);
+	}
+
+	//
+	fclose(file);
+
+	//
+	return 1;
+}
+
+int save_cascade(const char* path)
+{
+	int i;
+	FILE* file;
+
+	//
+	file = fopen(path, "wb");
+
+	if(!file)
+		return 0;
+
+	//
+	fwrite(&tsr, sizeof(float), 1, file);
+	fwrite(&tsc, sizeof(float), 1, file);
+
+	fwrite(&tdepth, sizeof(int), 1, file);
+
+	fwrite(&ntrees, sizeof(int), 1, file);
+
+	//
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		fwrite(&tcodes[i][0], sizeof(int32_t), (1<<tdepth)-1, file);
+		fwrite(&luts[i][0], sizeof(float), 1<<tdepth, file);
+		fwrite(&thresholds[i], sizeof(float), 1, file);
 	}
 
 	//
@@ -198,7 +181,7 @@ int main(int argc, char* argv[])
 	}
 
 	//
-	load_cascade_old(argv[1]);
+	load_cascade(argv[1]);
 
 	//
 	sscanf(argv[2], "%f", &rotation);
