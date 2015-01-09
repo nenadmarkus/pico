@@ -650,9 +650,6 @@ int classify_region(float* o, int r, int c, int s, uint8_t pixels[], int nrows, 
 		//
 		if(*o <= thresholds[i])
 			return -1;
-
-		//
-		++i;
 	}
 
 	//
