@@ -165,15 +165,6 @@ uint32_t mwcrand()
 	regression trees
 */
 
-typedef struct
-{
-	int depth;
-	int32_t* tcodes;
-
-	float* lut;
-
-} rtree;
-
 int bintest(int tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
 {
 	//
@@ -196,86 +187,6 @@ int bintest(int tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows
 
 	//
 	return pixels[r1*ldim+c1]<=pixels[r2*ldim+c2];
-}
-
-float get_rtree_output(rtree* t, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
-{
-	int d, idx;
-
-	//
-	idx = 0;
-
-	for(d=0; d<t->depth; ++d)
-		if( bintest(t->tcodes[idx], r, c, sr, sc, pixels, nrows, ncols, ldim) )
-			idx = 2*idx + 2;
-		else
-			idx = 2*idx + 1;
-
-	//
-	return t->lut[ idx - ((1<<t->depth)-1) ];
-}
-
-int allocate_rtree_data(rtree* t, int d)
-{
-	//
-	t->tcodes = (int32_t*)malloc(((1<<d)-1)*sizeof(int32_t));
-
-	t->lut = (float*)malloc((1<<d)*sizeof(float));
-
-	if(!t->tcodes || !t->lut)
-	{
-		free(t->tcodes);
-		free(t->lut);
-
-		t->depth = 0;
-
-		return 0;
-	}
-
-	//
-	t->depth = d;
-
-	//
-	return 1;
-}
-
-int deallocate_rtree_data(rtree* t, int d)
-{
-	if(t->depth)
-	{
-		free(t->tcodes);
-		free(t->lut);
-
-		t->tcodes = 0;
-		t->lut = 0;
-		t->depth = 0;
-	}
-
-	return 1;
-}
-
-int save_rtree_to_file(rtree* t, FILE* f)
-{
-	fwrite(&t->depth, sizeof(int), 1, f);
-	fwrite(t->tcodes, sizeof(int32_t), (1<<t->depth)-1, f);
-	fwrite(t->lut, sizeof(float), 1<<t->depth, f);
-
-	return 1;
-}
-
-int load_rtree_from_file(rtree* t, FILE* f)
-{
-	int d;
-
-	fread(&d, sizeof(int), 1, f);
-
-	if(!allocate_rtree_data(t, d))
-		return 0;
-
-	fread(t->tcodes, sizeof(int32_t), (1<<d)-1, f);
-	fread(t->lut, sizeof(float), 1<<d, f);
-
-	return 1;
 }
 
 float get_split_error(int tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
@@ -371,11 +282,11 @@ int split_training_data(int tcode, float tvals[], int rs[], int cs[], int srs[],
 	return n0;
 }
 
-int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
 {
 	int i, nrands;
 
-	int32_t tcodes[2048];
+	int32_t tcodelist[2048];
 	float spliterrors[2048], bestspliterror;
 
 	int n0;
@@ -400,9 +311,9 @@ int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[]
 		}
 
 		if(wsum == 0.0)
-			t->lut[lutidx] = 0.0f;
+			lut[lutidx] = 0.0f;
 		else
-			t->lut[lutidx] = (float)( tvalaccum/wsum );
+			lut[lutidx] = (float)( tvalaccum/wsum );
 
 		//
 		return 1;
@@ -410,11 +321,11 @@ int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[]
 	else if(indsnum <= 1)
 	{
 		//
-		t->tcodes[nodeidx] = 0;
+		tcodes[nodeidx] = 0;
 
 		//
-		grow_subtree(t, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
-		grow_subtree(t, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+		grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+		grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
 
 		return 1;
 	}
@@ -423,42 +334,39 @@ int grow_subtree(rtree* t, int nodeidx, int d, int maxd, float tvals[], int rs[]
 	nrands = NRANDS;
 
 	for(i=0; i<nrands; ++i)
-		tcodes[i] = mwcrand();
+		tcodelist[i] = mwcrand();
 
 	//
 	#pragma omp parallel for
 	for(i=0; i<nrands; ++i)
-		spliterrors[i] = get_split_error(tcodes[i], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+		spliterrors[i] = get_split_error(tcodelist[i], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
 
 	//
 	bestspliterror = spliterrors[0];
-	t->tcodes[nodeidx] = tcodes[0];
+	tcodes[nodeidx] = tcodelist[0];
 
 	for(i=1; i<nrands; ++i)
 		if(bestspliterror > spliterrors[i])
 		{
 			bestspliterror = spliterrors[i];
-			t->tcodes[nodeidx] = tcodes[i];
+			tcodes[nodeidx] = tcodelist[i];
 		}
 
 	//
-	n0 = split_training_data(t->tcodes[nodeidx], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+	n0 = split_training_data(tcodes[nodeidx], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
 
 	//
-	grow_subtree(t, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[0], n0);
-	grow_subtree(t, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[n0], indsnum-n0);
+	grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[0], n0);
+	grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[n0], indsnum-n0);
 
 	//
 	return 1;
 }
 
-int grow_rtree(rtree* t, int d, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int n)
+int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int n)
 {
 	int i;
 	int* inds;
-
-	if(!allocate_rtree_data(t, d))
-		return 0;
 
 	//
 	inds = (int*)malloc(n*sizeof(int));
@@ -467,7 +375,7 @@ int grow_rtree(rtree* t, int d, float tvals[], int rs[], int cs[], int srs[], in
 		inds[i] = i;
 
 	//
-	if(!grow_subtree(t, 0, 0, d, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, n))
+	if(!grow_subtree(tcodes, lut, 0, 0, d, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, n))
 	{
 		free(inds);
 		return 0;
@@ -487,9 +395,9 @@ int grow_rtree(rtree* t, int d, float tvals[], int rs[], int cs[], int srs[], in
 
 static int numos;
 
-static float ors[MAXNUMOS];
-static float ocs[MAXNUMOS];
-static float oss[MAXNUMOS];
+static int ors[MAXNUMOS];
+static int ocs[MAXNUMOS];
+static int oss[MAXNUMOS];
 
 static uint8_t* opixelss[MAXNUMOS];
 static int onrowss[MAXNUMOS];
@@ -543,10 +451,10 @@ int load_object_samples(const char* folder)
 		// get samples
 		for(i=0; i<n; ++i)
 		{
-			float r, c, s;
+			int r, c, s;
 
 			//
-			if(fscanf(list, "%f %f %f", &r, &c, &s) != 3)
+			if(fscanf(list, "%d %d %d", &r, &c, &s) != 3)
 				return 0;
 
 			//
@@ -618,49 +526,129 @@ int load_background_images(char* folder)
 	
 */
 
-struct
+float tsr, tsc;
+int tdepth;
+int ntrees=0;
+
+int32_t tcodes[1024][1024];
+float luts[1024][1024];
+
+float thresholds[1024];
+
+/*
+	
+*/
+
+int load_from_file(const char* path)
 {
-	float tsr, tsc;
-
-	int numstages;
-
-	float thresholds[1024];
-	int numtreess[1024];
-
-	rtree rtreearrays[32][256];
-
-} odetector;
-
-int classify_region(float* o, float r, float c, float s, uint8_t pixels[], int nrows, int ncols, int ldim)
-{
-	int i, j;
-	float ir, ic, isr, isc;
+	int i;
+	FILE* file;
 
 	//
-	*o = 0.0f;
+	file = fopen(path, "rb");
+
+	if(!file)
+		return 0;
 
 	//
-	if(!odetector.numstages)
+	fread(&tsr, sizeof(float), 1, file);
+	fread(&tsc, sizeof(float), 1, file);
+
+	fread(&tdepth, sizeof(int), 1, file);
+
+	fread(&ntrees, sizeof(int), 1, file);
+
+	//
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		fread(&tcodes[i][0], sizeof(int32_t), (1<<tdepth)-1, file);
+		fread(&luts[i][0], sizeof(float), 1<<tdepth, file);
+		fread(&thresholds[i], sizeof(float), 1, file);
+	}
+
+	//
+	fclose(file);
+
+	//
+	return 1;
+}
+
+int save_to_file(const char* path)
+{
+	int i;
+	FILE* file;
+
+	//
+	file = fopen(path, "wb");
+
+	if(!file)
+		return 0;
+
+	//
+	fwrite(&tsr, sizeof(float), 1, file);
+	fwrite(&tsc, sizeof(float), 1, file);
+
+	fwrite(&tdepth, sizeof(int), 1, file);
+
+	fwrite(&ntrees, sizeof(int), 1, file);
+
+	//
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		fwrite(&tcodes[i][0], sizeof(int32_t), (1<<tdepth)-1, file);
+		fwrite(&luts[i][0], sizeof(float), 1<<tdepth, file);
+		fwrite(&thresholds[i], sizeof(float), 1, file);
+	}
+
+	//
+	fclose(file);
+
+	//
+	return 1;
+}
+
+/*
+	
+*/
+
+float get_tree_output(int i, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
+{
+	int idx, j;
+
+	//
+	idx = 1;
+
+	for(j=0; j<tdepth; ++j)
+		idx = 2*idx + bintest(tcodes[i][idx-1], r, c, sr, sc, pixels, nrows, ncols, ldim);
+
+	//
+	return luts[i][idx - (1<<tdepth)];
+}
+
+int classify_region(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)
+{
+	int i, j, sr, sc;
+
+	//
+	if(!ntrees)
 		return 1;
 
 	//
-	ir = (int)( r );
-	ic = (int)( c );
+	sr = (int)(tsr*s);
+	sc = (int)(tsc*s);
 
-	isr = (int)( odetector.tsr*s );
-	isc = (int)( odetector.tsc*s );
+	*o = 0.0f;
 
 	//
-	i = 0;
-
-	while(i < odetector.numstages)
+	for(i=0; i<ntrees; ++i)
 	{
 		//
-		for(j=0; j<odetector.numtreess[i]; ++j)
-			*o += get_rtree_output(&odetector.rtreearrays[i][j], ir, ic, isr, isc, pixels, nrows, ncols, ldim);
+		*o += get_tree_output(i, r, c, sr, sc, pixels, nrows, ncols, ldim);
 
 		//
-		if(*o <= odetector.thresholds[i])
+		if(*o <= thresholds[i])
 			return -1;
 
 		//
@@ -671,85 +659,19 @@ int classify_region(float* o, float r, float c, float s, uint8_t pixels[], int n
 	return 1;
 }
 
-int save_to_file(char* path)
-{
-	int i, j;
-
-	FILE* f = fopen(path, "wb");
-
-	if(!f)
-		return 0;
-
-	//
-	fwrite(&odetector.tsr, sizeof(float), 1, f);
-	fwrite(&odetector.tsc, sizeof(float), 1, f);
-
-	fwrite(&odetector.numstages, sizeof(int), 1, f);
-
-	//
-	for(i=0; i<odetector.numstages; ++i)
-	{
-		fwrite(&odetector.numtreess[i], sizeof(int), 1, f);
-
-		for(j=0; j<odetector.numtreess[i]; ++j)
-			save_rtree_to_file(&odetector.rtreearrays[i][j], f);
-
-		fwrite(&odetector.thresholds[i], sizeof(float), 1, f);
-	}
-
-	fclose(f);
-
-	return 1;
-}
-
-int load_from_file(char* path)
-{
-	int i, j;
-
-	FILE* f = fopen(path, "rb");
-
-	if(!f)
-		return 0;
-
-	//
-	fread(&odetector.tsr, sizeof(float), 1, f);
-	fread(&odetector.tsc, sizeof(float), 1, f);
-
-	fread(&odetector.numstages, sizeof(int), 1, f);
-
-	//
-	for(i=0; i<odetector.numstages; ++i)
-	{
-		fread(&odetector.numtreess[i], sizeof(int), 1, f);
-
-		for(j=0; j<odetector.numtreess[i]; ++j)
-			load_rtree_from_file(&odetector.rtreearrays[i][j], f);
-
-		fread(&odetector.thresholds[i], sizeof(float), 1, f);
-	}
-
-	fclose(f);
-
-	return 1;
-}
-
-int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int maxnumtrees, int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], float os[], int np, int nn)
+int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int rs[], int cs[], int ss[], uint8_t* ppixels[], int nrowss[], int ncolss[], float os[], int np, int nn)
 {
 	int i;
 
 	float* tvals;
 
-	int* irs;
-	int* ics;
-	int* isrs;
-	int* iscs;
+	int* srs;
+	int* scs;
 
 	double* ws;
 	double wsum;
 
 	float threshold, tpr, fpr;
-
-	int numtrees;
 
 	//
 	tvals = (float*)malloc((np+nn)*sizeof(float));
@@ -761,30 +683,23 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 			tvals[i] = -1.0f; // non-object
 
 	//
-	irs = (int*)malloc((np+nn)*sizeof(int));
-	ics = (int*)malloc((np+nn)*sizeof(int));
-
-	isrs = (int*)malloc((np+nn)*sizeof(int));
-	iscs = (int*)malloc((np+nn)*sizeof(int));
+	srs = (int*)malloc((np+nn)*sizeof(int));
+	scs = (int*)malloc((np+nn)*sizeof(int));
 
 	for(i=0; i<np+nn; ++i)
 	{
-		irs[i] = (int)( rs[i] );
-		ics[i] = (int)( cs[i] );
-
-		isrs[i] = (int)( odetector.tsr*ss[i] );
-		iscs[i] = (int)( odetector.tsc*ss[i] );
+		srs[i] = (int)( tsr*ss[i] );
+		scs[i] = (int)( tsc*ss[i] );
 	}
 
 	//
 	ws = (double*)malloc((np+nn)*sizeof(double));
 
 	//
-	numtrees = 0;
-
+	maxntrees = ntrees + maxntrees;
 	fpr = 1.0f;
 
-	while(numtrees<maxnumtrees && fpr>maxfpr)
+	while(ntrees<maxntrees && fpr>maxfpr)
 	{
 		float t;
 		int numtps, numfps;
@@ -808,12 +723,14 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 		// grow a tree ...
 		t = getticks();
 
-		grow_rtree(&odetector.rtreearrays[stageidx][numtrees], tdepth, tvals, irs, ics, isrs, iscs, pixelss, nrowss, ncolss, ncolss, ws, np+nn);
+		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, srs, scs, ppixels, nrowss, ncolss, ncolss, ws, np+nn);
 
 		printf("\r");
-		printf("	tree %d (%f [sec]) ...", numtrees+1, getticks()-t);
+		printf("	tree %d (%f [s]) ...", ntrees+1, getticks()-t);
 
-		++numtrees;
+		thresholds[ntrees] = -1337.0f;
+
+		++ntrees;
 
 		// update outputs ...
 		for(i=0; i<np+nn; ++i)
@@ -821,7 +738,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 			float o;
 
 			//
-			o = get_rtree_output(&odetector.rtreearrays[stageidx][numtrees-1], irs[i], ics[i], isrs[i], iscs[i], pixelss[i], nrowss[i], ncolss[i], ncolss[i]);
+			o = get_tree_output(ntrees-1, rs[i], cs[i], srs[i], scs[i], ppixels[i], nrowss[i], ncolss[i], ncolss[i]);
 
 			//
 			os[i] += o;
@@ -858,21 +775,16 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 	}
 
 	//
-	odetector.thresholds[stageidx] = threshold;
+	thresholds[ntrees-1] = threshold;
 
 	printf("\n");
 	printf("	threshold set to %f\n", threshold);
 
 	//
-	odetector.numtreess[stageidx] = numtrees;
-
-	//
 	free(tvals);
 
-	free(irs);
-	free(ics);
-	free(isrs);
-	free(iscs);
+	free(srs);
+	free(scs);
 
 	free(ws);
 
@@ -880,7 +792,7 @@ int learn_new_stage(int stageidx, int tdepth, float mintpr, float maxfpr, int ma
 	return 1;
 }
 
-float sample_training_data(int classs[], float rs[], float cs[], float ss[], uint8_t* pixelss[], int nrowss[], int ncolss[], float os[], int maxn, int* np, int* nn)
+float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* ppixels[], int nrowss[], int ncolss[], float os[], int maxn, int* np, int* nn)
 {
 	int i, n;
 
@@ -908,14 +820,14 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 	*/
 
 	for(i=0; i<numos; ++i)
-		if( classify_region(&os[n], ors[i], ocs[i], oss[i], opixelss[i], onrowss[i], oncolss[i], oncolss[i])>0 )
+		if( classify_region(&os[n], ors[i], ocs[i], oss[i], opixelss[i], onrowss[i], oncolss[i], oncolss[i]) == 1 )
 		{
 			//
 			rs[n] = ors[i];
 			cs[n] = ocs[i];
 			ss[n] = oss[i];
 
-			pixelss[n] = opixelss[i];
+			ppixels[n] = opixelss[i];
 			nrowss[n] = onrowss[i];
 			ncolss[n] = oncolss[i];
 
@@ -976,7 +888,7 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 				continue;
 
 			//
-			if( classify_region(&o, r, c, s, pixels, nrows, ncols, ncols)>0 )
+			if( classify_region(&o, r, c, s, pixels, nrows, ncols, ncols) == 1 )
 			{
 				//we have a false positive ...
 				#pragma omp critical
@@ -987,7 +899,7 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 						cs[n] = c;
 						ss[n] = s;
 
-						pixelss[n] = pixels;
+						ppixels[n] = pixels;
 						nrowss[n] = nrows;
 						ncolss[n] = ncols;
 
@@ -1027,17 +939,17 @@ float sample_training_data(int classs[], float rs[], float cs[], float ss[], uin
 	return efpr;
 }
 
-int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, float targetfpr, float minstagetpr, float maxstagefpr, int tdepths, int maxnumtreesperstage)
+int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfpr, float minstagetpr, float maxstagefpr, int maxnumtreesperstage)
 {
 	#define MAXMAXNUMSAMPLES 2*MAXNUMOS
 
-	static float rs[MAXMAXNUMSAMPLES];
-	static float cs[MAXMAXNUMSAMPLES];
-	static float ss[MAXMAXNUMSAMPLES];
+	static int rs[MAXMAXNUMSAMPLES];
+	static int cs[MAXMAXNUMSAMPLES];
+	static int ss[MAXMAXNUMSAMPLES];
 
 	static int classs[MAXMAXNUMSAMPLES];
 
-	static uint8_t* pixelss[MAXMAXNUMSAMPLES];
+	static uint8_t* ppixels[MAXMAXNUMSAMPLES];
 	static int nrowss[MAXMAXNUMSAMPLES];
 	static int ncolss[MAXMAXNUMSAMPLES];
 
@@ -1051,13 +963,11 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 		return 0;
 
 	//
-	maxnumstages = odetector.numstages + maxnumstagestoappend;
 	maxnumsamples = 2*numos;
 
-	//
 	np = nn = 0;
 
-	for(i=odetector.numstages; i<maxnumstages; ++i)
+	for(i=0; i<maxnumstagestoappend; ++i)
 	{
 		float currentfpr;
 
@@ -1070,11 +980,11 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 
 		printf("\n");
 
-		currentfpr = sample_training_data(classs, rs, cs, ss, pixelss, nrowss, ncolss, os, maxnumsamples, &np, &nn);
+		currentfpr = sample_training_data(classs, rs, cs, ss, ppixels, nrowss, ncolss, os, maxnumsamples, &np, &nn);
 
 		if(currentfpr <= targetfpr)
 		{
-			printf("- target FPR achieved ... terminating learning process ...\n");
+			printf("- target FPR achieved ... terminating the learning process ...\n");
 
 			break;
 		}
@@ -1084,16 +994,14 @@ int append_stages_to_odetector(char* src, char* dst, int maxnumstagestoappend, f
 		*/
 
 		printf("\n");
-		printf("- learning stage ...\n");
+		printf("- learning a new stage ...\n");
 		printf("	npositives: %d, nnegatives: %d\n", np, nn);
 
-		learn_new_stage(i, tdepths, minstagetpr, maxstagefpr, maxnumtreesperstage, classs, rs, cs, ss, pixelss, nrowss, ncolss, os, np, nn);
+		learn_new_stage(minstagetpr, maxstagefpr, maxnumtreesperstage, classs, rs, cs, ss, ppixels, nrowss, ncolss, os, np, nn);
 
 		/*
-			we have a new stage
+			
 		*/
-
-		++odetector.numstages;
 
 		//
 		printf("\n");
@@ -1120,19 +1028,6 @@ const char* howto()
 {
 	return
 		"TODO\n"
-		/*
-		"Welcome to the tool for learning object detectors based on pixel intensity comparisons organized in decision trees. The implementation closely follows the following technical report:\n"
-		"\n"
-		"\tN. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer.\n"
-		"\tA Method for Object Detection Based on Pixel Intensity Comparisons.\n"
-		"\thttp://arxiv.org/abs/1305.4537\n"
-		"\n"
-		"RID image container ...\n"
-		"\n"
-		"\n"
-		"Copyright (c) 2013, Nenad Markus\n"
-		"All rights reserved.\n"
-		*/
 	;
 }
 
@@ -1153,20 +1048,20 @@ int main(int argc, char* argv[])
 	//
 	if(argc == 5)
 	{
-		sscanf(argv[1], "%f", &odetector.tsr);
-		sscanf(argv[2], "%f", &odetector.tsc);
+		sscanf(argv[1], "%f", &tsr);
+		sscanf(argv[2], "%f", &tsc);
 
-		sscanf(argv[3], "%d", &ntrees);
+		sscanf(argv[3], "%d", &tdepth);
 
 		//
-		odetector.numstages = 0;
+		ntrees = 0;
 
 		//
 		if(!save_to_file(argv[4]))
 			return 0;
 
 		//
-		printf("INITIALIZING: (%f, %f)\n", odetector.tsr, odetector.tsc);
+		printf("INITIALIZING: (%f, %f, %d)\n", tsr, tsc, tdepth);
 
 		//
 		return 0;
@@ -1180,12 +1075,11 @@ int main(int argc, char* argv[])
 
 		sscanf(argv[4], "%d", &maxnstages);
 		sscanf(argv[5], "%f", &targetfpr);
-		sscanf(argv[6], "%d", &tdepths);
-		sscanf(argv[7], "%f", &minstagetpr);
-		sscanf(argv[8], "%f", &maxstagefpr);
-		sscanf(argv[9], "%d", &maxnumtreesperstage);
+		sscanf(argv[6], "%f", &minstagetpr);
+		sscanf(argv[7], "%f", &maxstagefpr);
+		sscanf(argv[8], "%d", &maxnumtreesperstage);
 
-		dst = argv[10];
+		dst = argv[9];
 	}
 	else
 	{
@@ -1217,7 +1111,7 @@ int main(int argc, char* argv[])
 	//
 	t = getticks();
 	printf("LEARNING ...\n");
-	append_stages_to_odetector(src, dst, maxnstages, targetfpr, minstagetpr, maxstagefpr, tdepths, maxnumtreesperstage);
+	append_stages(src, dst, maxnstages, targetfpr, minstagetpr, maxstagefpr, maxnumtreesperstage);
 	printf("FINISHED ...\n");
 
 	printf("elapsed time: %f [sec]\n", getticks()-t);
