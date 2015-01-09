@@ -23,5 +23,6 @@ If everything went well, you should find a file `face-detector-from-genki-datase
 
 ## 4. Try the new face detector:
 
-* Open `sample.c` with a text editor and replace the line `facefinder.ea` with `face-detector-from-genki-dataset.ea`
+* Use `picogen.c` to generate the face detection function: `./picogen d 0.0 is_region_a_face > genki_facefinder.c`
+* Modify `sample.c`: replace `#include "is_region_a_face"` with `#include "genki_facefinder.c"`
 * Compile and run the program

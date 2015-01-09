@@ -956,7 +956,7 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 	static float os[MAXMAXNUMSAMPLES];
 
 	//
-	int i, maxnumsamples, maxnumstages, np, nn;
+	int i, maxnumsamples, np, nn;
 
 	//
 	if(!load_from_file(src))
@@ -972,7 +972,7 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 		float currentfpr;
 
 		printf("--------------------------------------------------------------------\n");
-		printf("%d/%d\n", i+1, maxnumstages);
+		printf("%d/%d\n", i+1, maxnumstagestoappend);
 
 		/*
 			sample training set
@@ -1066,7 +1066,7 @@ int main(int argc, char* argv[])
 		//
 		return 0;
 	}
-	else if(argc == 11)
+	else if(argc == 10)
 	{
 		src = argv[1];
 

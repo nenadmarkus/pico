@@ -125,7 +125,7 @@ def export(im, r, c, s, folder, id, list):
 
 			response = input('Press Enter to continue...')
 
-		list.write('\t%f %f %f\n' % (rtmp, ctmp, stmp))
+		list.write('\t%d %d %d\n' % (int(rtmp), int(ctmp), int(stmp)))
 
 	list.write('\n')
 	list.flush()
