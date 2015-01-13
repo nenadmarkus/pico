@@ -207,7 +207,8 @@ int main(int argc, char* argv[])
 
 	if(rotation != 0.0f)
 	{
-		printf("TODO: rotations\n");
+		printf("TODO:\n");
+		printf("* generate a classification function for rotated objects\n");
 		return 0;
 	}
 
