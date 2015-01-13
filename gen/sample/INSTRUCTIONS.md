@@ -19,10 +19,10 @@ Run the script `lrn.sh`/`lrn.bat` (depending on your OS) with appropriate parame
 
 Learning should finish in ~2 days on a modern machine with 4 CPU cores.
 
-If everything went well, you should find a file `face-detector-from-genki-dataset.ea` in the folder.
+If everything went well, you should find a classification cascade file `d` in the folder.
 
 ## 4. Try the new face detector:
 
-* Use `picogen.c` to generate the face detection function: `./picogen d 0.0 is_region_a_face > genki_facefinder.c`
+* Use `picogen.c` to transform the detection cascade into highly optimized C code: `./picogen d 0.0 is_region_a_face > genki_facefinder.c`
 * Modify `sample.c`: replace `#include "is_region_a_face"` with `#include "genki_facefinder.c"`
 * Compile and run the program

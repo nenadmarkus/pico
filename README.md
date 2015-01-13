@@ -1,6 +1,6 @@
 # Pixel Intensity Comparison-based Object detection (pico)
 
-Those of you who would like to quickly see what this repository is all about, go to the folder **runtime/samples/C**.
+Those of you who would like to quickly see what this repository is all about, go to the folder **rnt/sample**.
 There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
 Also, you can check out a demo video at <http://www.youtube.com/watch?v=1lXfm-PZz0Q>.
 
@@ -27,18 +27,20 @@ Some highlights of **pico** are:
 
 ## Detecting objects in images and videos
 
-The folder **runtime/** contains all the needed resources to perform object detection in images and video streams using pre-trained classification cascades.
-Specifically, sample applications that performs face detection can be found in the folder **runtime/samples/**.
+The folder **rnt/** contains all the needed resources to perform object detection in images and video streams with pre-trained classification cascades.
+Specifically, a sample application that performs face detection can be found in the folder **rnt/samples/**.
 
-Note that the library also enables rotation invariant object detection.
-This option is demonstrated by compiling the samples with a `_ROTATION_INVARIANT_DETECTION_` flag.
+Note that the library also enables the detection of rotated objects without the need of image resampling or classification cascade retraining.
+This is achieved by rotating the binary tests in internal tree nodes, as described in the paper.
+These "rotated" classifiers are created by passing the rotation angle (in radians) to `picogen.c`.
+More details can be found in the folder **gen/**.
 
-### Embedding pico runtime within your application
+### Embedding the runtime within your application
 
 To use the runtime in your own application, you have to:
 
 * Include a prototype for a function `find_objects(...)` in your code (for example, by adding `#include picort.h`)
-* Include an image region classifier function (generated with `picogen.c`; for example, `is_region_a_face.c`)
+* Include an image region classifier function (generated with `picogen.c` from a file outputted by `picolrn.c`; default: `is_region_a_face.c` generated from `facefinder`)
 * Compile `picornt.c` with your code
 * Invoke `find_objects(...)` with appropriate parameters
 
@@ -48,14 +50,14 @@ To get a feel for how the library works, we recommend that you look at `sample.c
 
 ## Learning custom object detectors
 
-The program `picolrn.c` (available in the folder **learning/**) enables you to learn your own (custom) object detectors.
+The program `picolrn.c` (available in the folder **gen/**) enables you to learn your own (custom) object detectors.
 The training data has to be provided in a specific format.
 The details are printed to the standard output when `picolrn` is invoked without parameters.
 It is often convenient to pipe this information into a text file:
 
     $ ./picolrn > howto.txt
 
-A tutorial that guides you through the process of learning a face detector can be found in the folder **learning/sample/**.
+A tutorial that guides you through the process of learning a face detector can be found in the folder **gen/sample/**.
 
 ## Citation
 
@@ -64,7 +66,7 @@ If you use the provided code/binaries for your work, please cite the following p
 
 ## Contact
 
-For any additional information contact me at <nenad.markus@fer.hr> or visit <http://public.tel.fer.hr/odet/>.
+For any additional information contact me at <nenad.markus@fer.hr>.
 
 Copyright (c) 2013, Nenad Markus.
 All rights reserved.

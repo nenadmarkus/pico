@@ -23,7 +23,7 @@
 #include <highgui.h>
 
 //
-#include "../../picornt.h"
+#include "../picornt.h"
 
 #include "is_region_a_face"
 
