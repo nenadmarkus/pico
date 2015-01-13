@@ -139,7 +139,7 @@ void process_image(IplImage* frame, int draw, int print)
 				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 
 		//
-		printf("# %f\n", 1000.0f*t);
+		printf("# %f\n", 1000.0f*t); // use '#' to ignore this line when parsing the output of the program
 	}
 }
 
