@@ -40,7 +40,7 @@ More details can be found in the folder **gen/**.
 To use the runtime in your own application, you have to:
 
 * Include a prototype for a function `find_objects(...)` in your code (for example, by adding `#include picort.h`)
-* Include an image region classifier function (generated with `picogen.c` from a file outputted by `picolrn.c`; default: `is_region_a_face.c` generated from `facefinder`)
+* Include an image region classifier function (generated with `picogen.c` from a file outputted by `picolrn.c`; default: `facefinder.c` generated from a cascade named `facefinder`)
 * Compile `picornt.c` with your code
 * Invoke `find_objects(...)` with appropriate parameters
 

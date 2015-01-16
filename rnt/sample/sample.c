@@ -25,7 +25,7 @@
 //
 #include "../picornt.h"
 
-#include "is_region_a_face"
+#include "facefinder.c"
 
 /*
 	object detection parameters
@@ -120,7 +120,7 @@ void process_image(IplImage* frame, int draw, int print)
 
 	// actually, all the smart stuff happens here
 	t = getticks();
-	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, is_region_a_face, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols));
+	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_facefinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols));
 	ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
 	t = getticks() - t;
 

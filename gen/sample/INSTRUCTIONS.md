@@ -23,6 +23,6 @@ If everything went well, you should find a classification cascade file `d` in th
 
 ## 4. Try the new face detector:
 
-* Use `picogen.c` to transform the detection cascade into highly optimized C code: `./picogen d 0.0 is_region_a_face > genki_facefinder.c`
-* Modify `sample.c`: replace `#include "is_region_a_face"` with `#include "genki_facefinder.c"`
+* Use `picogen.c` to transform the detection cascade into highly optimized C code: `./picogen d 0.0 run_facefinder > facefinder_genki.c`
+* Modify `sample.c`: replace `#include "facefinder.c"` with `#include "facefinder_genki.c"`
 * Compile and run the program

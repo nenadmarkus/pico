@@ -1,4 +1,4 @@
-int is_region_a_face(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)
+int run_facefinder(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)
 {
 	int i, j, idx, sr, sc;
 
