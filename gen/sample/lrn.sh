@@ -6,7 +6,7 @@
 
 mkdir -p faces
 
-#python preparefacesamplesfromgenki.py $1 faces
+python preparefacesamplesfromgenki.py $1 faces
 
 #
 # prepare non-face samples (background)
@@ -14,7 +14,7 @@ mkdir -p faces
 
 mkdir -p nonfaces
 
-#python preparebackground.py $2 nonfaces
+python preparebackground.py $2 nonfaces
 
 #
 # start the learning process
