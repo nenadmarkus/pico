@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 
 /*
 	
@@ -116,6 +117,29 @@ void print_c_code(const char* name, float rotation)
 {
 	int i, j;
 
+	int qsin, qcos, q;
+
+	static int16_t rtcodes[1024][1024][4];
+
+	// generate rotated binary tests
+	q = (1<<16);
+
+	qsin = (int)( q*sin(rotation) );
+	qcos = (int)( q*cos(rotation) );
+
+	for(i=0; i<ntrees; ++i)
+		for(j=0; j<(1<<tdepth)-1; ++j)
+		{
+			int8_t* p = (int8_t*)&tcodes[i][j];
+
+			//
+			rtcodes[i][j][0] = (p[0]*qcos - p[1]*qsin)/q;
+			rtcodes[i][j][1] = (p[0]*qsin + p[1]*qcos)/q;
+
+			rtcodes[i][j][2] = (p[2]*qcos - p[3]*qsin)/q;
+			rtcodes[i][j][3] = (p[2]*qsin + p[3]*qcos)/q;
+		}
+
 	//
 	printf("int %s(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)\n", name);
 	printf("{\n");
@@ -125,13 +149,13 @@ void print_c_code(const char* name, float rotation)
 
 	//
 	printf("\n");
-	printf("	static int8_t tcodes[%d][%d][4] =\n", ntrees, 1<<tdepth);
+	printf("	static int16_t tcodes[%d][%d][4] =\n", ntrees, 1<<tdepth);
 	printf("	{\n");
 	for(i=0; i<ntrees; ++i)
 	{
-		printf("		{{0x00, 0x00, 0x00, 0x00}");
+		printf("		{{0, 0, 0, 0}");
 		for(j=0; j<(1<<tdepth)-1; ++j)
-			printf(", {0x%02x, 0x%02x, 0x%02x, 0x%02x}", (tcodes[i][j]>>0)&0xFF, (tcodes[i][j]>>8)&0xFF, (tcodes[i][j]>>16)&0xFF, (tcodes[i][j]>>24)&0xFF);
+			printf(", {%d, %d, %d, %d}", rtcodes[i][j][0], rtcodes[i][j][1], rtcodes[i][j][2], rtcodes[i][j][3]);
 		printf("},\n");
 	}
 	printf("	};\n");
@@ -171,7 +195,6 @@ void print_c_code(const char* name, float rotation)
 	{
 		printf("		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);\n");
 		///printf("		idx = 2*idx + (pixels[tcodes[i][idx][0]*sr/256*ldim + tcodes[i][idx][1]*sc/256]<=pixels[tcodes[i][idx][2]*sr/256*ldim + tcodes[i][idx][3]*sc/256]);\n");
-
 	}
 	printf("\n		*o = *o + lut[i][idx-%d];\n\n", 1<<tdepth);
 	printf("		if(*o<=thresholds[i])\n\t\t\treturn -1;\n");
@@ -204,13 +227,6 @@ int main(int argc, char* argv[])
 
 	//
 	sscanf(argv[2], "%f", &rotation);
-
-	if(rotation != 0.0f)
-	{
-		printf("TODO:\n");
-		printf("* generate a classification function for rotated objects\n");
-		return 0;
-	}
 
 	//
 	print_c_code(argv[3], rotation);
