@@ -237,7 +237,7 @@ int main(int argc, char* argv[])
 	//
 	if(argc!=4)
 	{
-		printf("* specify arguments: cascade, in-plane rotation, detection function name.\n");
+		printf("* specify arguments: <cascade> <in-plane rotation> <detection function name>\n");
 		return 0;
 	}
 
