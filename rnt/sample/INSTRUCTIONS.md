@@ -1,16 +1,16 @@
 ## Compiling the program
 
-To compile and run the programs, you will need:
+To compile and run the sample, you will need:
 
 * a C compiler
 * OpenCV library, <http://opencv.org/>
 
-The programs can be compiled on *nix machines by using the provided makefile (some small modifications are usually required).
+Use the provided makefile on *nix machines (some small modifications are usually required).
 
-The programs use OpenCV library to obtain data from webcams and to load/save images in common image formats (JPG, PNG, ...).
-Thus, if you wish to redistribute them or their modifications in binary form, they have to reproduce the OpenCV license (read more at the official web page).
+The sample uses the OpenCV library to obtain data from webcams and to load/save images in common image formats (JPG, PNG, etc.).
+Thus, if you wish to redistribute it or its modifications in binary form, you have to reproduce the OpenCV license (read more at the official web page).
 
-## Invoking the programs
+## Invoking the program
 
 There are four ways of invoking the face detection sample program:
 
