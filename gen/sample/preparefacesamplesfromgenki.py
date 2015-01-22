@@ -36,7 +36,7 @@ if plot:
 	matplotlib.pyplot.show(block=False)
 
 #
-def saveasrid(im, path):
+def save_as_rid(im, path):
 	#
 	# raw intensity data
 	#
@@ -131,9 +131,9 @@ def export(im, r, c, s, folder, id, list):
 	list.flush()
 
 	#
-	saveasrid(im, folder + '/' + id + '.rid')
+	save_as_rid(im, folder + '/' + id + '.rid')
 
-def exportmirrored(im, r, c, s, folder, id, list):
+def mirror_and_export(im, r, c, s, folder, id, list):
 	#
 	# exploit mirror symmetry of the face
 	#
@@ -186,7 +186,7 @@ for i in range(0, len(rs)):
 
 	# faces are symmetric and we exploit this here
 	id = 'face' + str(n)
-	exportmirrored(im, r, c, s, dstfolder, id, list)
+	mirror_and_export(im, r, c, s, dstfolder, id, list)
 	n = n+1
 
 #

@@ -16,7 +16,7 @@ parser.add_argument('dst')
 args = parser.parse_args()
 
 #
-def saveasrid(im, path):
+def save_as_rid(im, path):
 	#
 	h = im.shape[0]
 	w = im.shape[1]
@@ -72,7 +72,7 @@ for dirpath, dirnames, filenames in os.walk(srcfolder):
 		im = numpy.asarray(im)
 
 		name = ( '%05d' % n ) + '-' + filename + '.rid'
-		saveasrid(im, dstfolder + '/' + name)
+		save_as_rid(im, dstfolder + '/' + name)
 
 		list.write(name + '\n')
 		list.flush()

@@ -26,7 +26,7 @@
 int find_objects
 		(
 			float rs[], float cs[], float ss[], float qs[], int maxndetections,
-			int (*classify_image_region)(float*, int, int, int, uint8_t*, int, int, int),
+			int (*run_detection_cascade)(float*, int, int, int, uint8_t*, int, int, int),
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
 		);
