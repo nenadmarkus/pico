@@ -953,6 +953,10 @@ int run_facefinder(float* o, int r, int c, int s, uint8_t pixels[], int nrows, i
 
 	sr = (int)(1.000000f*s);
 	sc = (int)(1.000000f*s);
+
+	if( (256*r+128*sr)/256>=nrows || (256*r-128*sr)/256<0 || (256*c+128*sc)/256>=ncols || (256*c-128*sc)/256<0 )
+		return -1;
+
 	*o = 0.0f;
 
 	for(i=0; i<468; ++i)
@@ -972,5 +976,6 @@ int run_facefinder(float* o, int r, int c, int s, uint8_t pixels[], int nrows, i
 	}
 
 	*o = *o - thresholds[467];
+
 	return +1;
 }

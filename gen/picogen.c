@@ -21,6 +21,9 @@
 #include <stdint.h>
 #include <math.h>
 
+#define MAX(a, b) ((a)>(b)?(a):(b))
+#define ABS(x) ((x)>0?(x):(-(x)))
+
 /*
 	
 */
@@ -115,7 +118,7 @@ int save_cascade(const char* path)
 
 void print_c_code(const char* name, float rotation)
 {
-	int i, j;
+	int i, j, maxr, maxc;
 
 	int qsin, qcos, q;
 
@@ -126,6 +129,9 @@ void print_c_code(const char* name, float rotation)
 
 	qsin = (int)( q*sin(rotation) );
 	qcos = (int)( q*cos(rotation) );
+
+	maxr = 0;
+	maxc = 0;
 
 	for(i=0; i<ntrees; ++i)
 		for(j=0; j<(1<<tdepth)-1; ++j)
@@ -138,6 +144,10 @@ void print_c_code(const char* name, float rotation)
 
 			rtcodes[i][j][2] = (p[2]*qcos - p[3]*qsin)/q;
 			rtcodes[i][j][3] = (p[2]*qsin + p[3]*qcos)/q;
+
+			//
+			maxr = MAX(maxr, MAX(ABS(rtcodes[i][j][0]), ABS(rtcodes[i][j][2])));
+			maxc = MAX(maxc, MAX(ABS(rtcodes[i][j][1]), ABS(rtcodes[i][j][3])));
 		}
 
 	//
@@ -186,6 +196,14 @@ void print_c_code(const char* name, float rotation)
 	printf("\n");
 	printf("	sr = (int)(%ff*s);\n", tsr);
 	printf("	sc = (int)(%ff*s);\n", tsc);
+
+	// generate the code that checks image boundaries
+	printf("\n");
+	printf("	if( (256*r+%d*sr)/256>=nrows || (256*r-%d*sr)/256<0 || (256*c+%d*sc)/256>=ncols || (256*c-%d*sc)/256<0 )\n", maxr, maxr, maxc, maxc);
+	printf("		return -1;\n");
+
+	//
+	printf("\n");
 	printf("	*o = 0.0f;\n\n");
 	///printf("	pixels = &pixels[r*ldim+c];\n");
 	printf("	for(i=0; i<%d; ++i)\n", ntrees);
@@ -201,6 +219,7 @@ void print_c_code(const char* name, float rotation)
 	printf("	}\n");
 
 	printf("\n	*o = *o - thresholds[%d];\n", ntrees-1);
+	printf("\n");
 	printf("	return +1;\n");
 
 	//
