@@ -24,7 +24,7 @@ args = parser.parse_args()
 srcfolder = args.srcfolder
 dstfolder = args.dstfolder
 
-# create destination folder, if needed
+# create a destination folder, if needed
 if not os.path.exists(dstfolder):
    os.makedirs(dstfolder)
 
