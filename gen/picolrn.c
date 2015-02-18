@@ -165,7 +165,7 @@ uint32_t mwcrand()
 	regression trees
 */
 
-int bintest(int tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
+int bintest(int32_t tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
 {
 	//
 	int r1, c1, r2, c2;
@@ -189,7 +189,7 @@ int bintest(int tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows
 	return pixels[r1*ldim+c1]<=pixels[r2*ldim+c2];
 }
 
-float get_split_error(int tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
 {
 	int i, j;
 
@@ -227,7 +227,7 @@ float get_split_error(int tcode, float tvals[], int rs[], int cs[], int srs[], i
 	return (float)( (wmse0 + wmse1)/wsum );
 }
 
-int split_training_data(int tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
 {
 	int stop;
 	int i, j;
