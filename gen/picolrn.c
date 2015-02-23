@@ -34,55 +34,6 @@
 #define SQR(x) ((x)*(x))
 
 /*
-	- loads an 8-bit grey image saved in the <RID> file format
-	- <RID> file contents:
-		- a 32-bit signed integer w (image width)
-		- a 32-bit signed integer h (image height)
-		- an array of w*h unsigned bytes representing pixel intensities
-*/
-
-int loadrid(uint8_t* pixels[], int* nrows, int* ncols, const char* path)
-{
-	FILE* file;
-	int w, h;
-	
-	// open file
-	file = fopen(path, "rb");
-
-	if(!file)
-	{
-		return 0;
-	}
-
-	// read width
-	fread(&w, sizeof(int), 1, file);
-	// read height
-	fread(&h, sizeof(int), 1, file);
-
-	// allocate image memory
-	*nrows = h;
-	*ncols = w;
-
-	*pixels = (uint8_t*)malloc(w*h*sizeof(uint8_t));
-
-	if(!*pixels)
-	{
-		fclose(file);
-
-		return 0;
-	}
-
-	// read image data
-	fread(*pixels, sizeof(uint8_t), w*h, file);
-
-	// clean up
-	fclose(file);
-
-	// we're done
-	return 1;
-}
-
-/*
 	portable time function
 */
 
@@ -162,10 +113,109 @@ uint32_t mwcrand()
 }
 
 /*
+	
+*/
+
+#define MAX_N 2000000
+
+int N = 0;
+uint8_t* ppixels[MAX_N];
+int pdims[MAX_N][2]; // (nrows, ncols)
+
+int nbackground = 0;
+int background[MAX_N]; // i
+
+int nobjects = 0;
+int objects[MAX_N][4]; // (r, c, s, i)
+
+int load_image(uint8_t* pixels[], int* nrows, int* ncols, FILE* file)
+{
+	/*
+	- loads an 8-bit grey image saved in the <RID> file format
+	- <RID> file contents:
+		- a 32-bit signed integer h (image height)
+		- a 32-bit signed integer w (image width)
+		- an array of w*h unsigned bytes representing pixel intensities
+	*/
+
+	//
+	if(fread(nrows, sizeof(int), 1, file) != 1)
+		return 0;
+
+	if(fread(ncols, sizeof(int), 1, file) != 1)
+		return 0;
+
+	//
+	*pixels = (uint8_t*)malloc(*nrows**ncols*sizeof(uint8_t));
+
+	if(!*pixels)
+		return 0;
+
+	// read pixels
+	if(fread(*pixels, sizeof(uint8_t), *nrows**ncols, file) != *nrows**ncols)
+		return 0;
+
+	// we're done
+	return 1;
+}
+
+int load_training_data(char* path)
+{
+	FILE* file;
+
+	//
+	file = fopen(path, "rb");
+
+	if(!file)
+		return 0;
+
+	//
+	N = 0;
+
+	nbackground = 0;
+	nobjects = 0;
+
+	while( load_image(&ppixels[N], &pdims[N][0], &pdims[N][1], file) )
+	{
+		int i, n;
+
+		//
+		if(fread(&n, sizeof(int), 1, file) != 1)
+			return 0;
+
+		if(!n)
+		{
+			background[nbackground] = N;
+			++nbackground;
+		}
+		else
+		{
+			for(i=0; i<n; ++i)
+			{
+				fread(&objects[nobjects][0], sizeof(int), 1, file); // r
+				fread(&objects[nobjects][1], sizeof(int), 1, file); // c
+				fread(&objects[nobjects][2], sizeof(int), 1, file); // s
+
+				objects[nobjects][3] = N; // i
+
+				//
+				++nobjects;
+			}
+		}
+
+		//
+		++N;
+	}
+
+	//
+	return 1;
+}
+
+/*
 	regression trees
 */
 
-int bintest(int32_t tcode, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
+int bintest(int32_t tcode, int r, int c, int sr, int sc, int iind)
 {
 	//
 	int r1, c1, r2, c2;
@@ -179,17 +229,17 @@ int bintest(int32_t tcode, int r, int c, int sr, int sc, uint8_t pixels[], int n
 	c2 = (256*c + p[3]*sc)/256;
 
 	//
-	r1 = MIN(MAX(0, r1), nrows-1);
-	c1 = MIN(MAX(0, c1), ncols-1);
+	r1 = MIN(MAX(0, r1), pdims[iind][0]-1);
+	c1 = MIN(MAX(0, c1), pdims[iind][1]-1);
 
-	r2 = MIN(MAX(0, r2), nrows-1);
-	c2 = MIN(MAX(0, c2), ncols-1);
+	r2 = MIN(MAX(0, r2), pdims[iind][0]-1);
+	c2 = MIN(MAX(0, c2), pdims[iind][1]-1);
 
 	//
-	return pixels[r1*ldim+c1]<=pixels[r2*ldim+c2];
+	return ppixels[iind][r1*pdims[iind][1]+c1]<=ppixels[iind][r2*pdims[iind][1]+c2];
 }
 
-float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int indsnum)
 {
 	int i, j;
 
@@ -203,7 +253,7 @@ float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[
 
 	for(i=0; i<indsnum; ++i)
 	{
-		if( bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], pixelss[inds[i]], nrowss[inds[i]], ncolss[inds[i]], ldims[inds[i]]) )
+		if( bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
 		{
 			wsum1 += ws[inds[i]];
 			wtvalsum1 += ws[inds[i]]*tvals[inds[i]];
@@ -227,7 +277,7 @@ float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[
 	return (float)( (wmse0 + wmse1)/wsum );
 }
 
-int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int ninds)
 {
 	int stop;
 	int i, j;
@@ -238,12 +288,12 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 	stop = 0;
 
 	i = 0;
-	j = indsnum - 1;
+	j = ninds - 1;
 
 	while(!stop)
 	{
 		//
-		while( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], pixelss[inds[i]], nrowss[inds[i]], ncolss[inds[i]], ldims[inds[i]]) )
+		while( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
 		{
 			if( i==j )
 				break;
@@ -251,7 +301,7 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 				++i;
 		}
 
-		while( bintest(tcode, rs[inds[j]], cs[inds[j]], srs[inds[j]], scs[inds[j]], pixelss[inds[j]], nrowss[inds[j]], ncolss[inds[j]], ldims[inds[j]]) )
+		while( bintest(tcode, rs[inds[j]], cs[inds[j]], srs[inds[j]], scs[inds[j]], iinds[inds[j]]) )
 		{
 			if( i==j )
 				break;
@@ -274,15 +324,15 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 	//
 	n0 = 0;
 
-	for(i=0; i<indsnum; ++i)
-		if( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], pixelss[inds[i]], nrowss[inds[i]], ncolss[inds[i]], ldims[inds[i]]) )
+	for(i=0; i<ninds; ++i)
+		if( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
 			++n0;
 
 	//
 	return n0;
 }
 
-int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int inds[], int indsnum)
+int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int ninds)
 {
 	int i, nrands;
 
@@ -304,7 +354,7 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 		tvalaccum = 0.0;
 		wsum = 0.0;
 
-		for(i=0; i<indsnum; ++i)
+		for(i=0; i<ninds; ++i)
 		{
 			tvalaccum += ws[inds[i]]*tvals[inds[i]];
 			wsum += ws[inds[i]];
@@ -318,14 +368,14 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 		//
 		return 1;
 	}
-	else if(indsnum <= 1)
+	else if(ninds <= 1)
 	{
 		//
 		tcodes[nodeidx] = 0;
 
 		//
-		grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
-		grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+		grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
+		grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
 
 		return 1;
 	}
@@ -339,7 +389,7 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 	//
 	#pragma omp parallel for
 	for(i=0; i<nrands; ++i)
-		spliterrors[i] = get_split_error(tcodelist[i], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+		spliterrors[i] = get_split_error(tcodelist[i], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
 
 	//
 	bestspliterror = spliterrors[0];
@@ -353,17 +403,17 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 		}
 
 	//
-	n0 = split_training_data(tcodes[nodeidx], tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, indsnum);
+	n0 = split_training_data(tcodes[nodeidx], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
 
 	//
-	grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[0], n0);
-	grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, &inds[n0], indsnum-n0);
+	grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, &inds[0], n0);
+	grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, &inds[n0], ninds-n0);
 
 	//
 	return 1;
 }
 
-int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], int cs[], int srs[], int scs[], uint8_t* pixelss[], int nrowss[], int ncolss[], int ldims[], double ws[], int n)
+int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int n)
 {
 	int i;
 	int* inds;
@@ -375,7 +425,7 @@ int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], in
 		inds[i] = i;
 
 	//
-	if(!grow_subtree(tcodes, lut, 0, 0, d, tvals, rs, cs, srs, scs, pixelss, nrowss, ncolss, ldims, ws, inds, n))
+	if(!grow_subtree(tcodes, lut, 0, 0, d, tvals, rs, cs, srs, scs, iinds, ws, inds, n))
 	{
 		free(inds);
 		return 0;
@@ -385,141 +435,6 @@ int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], in
 		free(inds);
 		return 1;
 	}
-}
-
-/*
-	object samples
-*/
-
-#define MAXNUMOS 1000000
-
-static int numos;
-
-static int ors[MAXNUMOS];
-static int ocs[MAXNUMOS];
-static int oss[MAXNUMOS];
-
-static uint8_t* opixelss[MAXNUMOS];
-static int onrowss[MAXNUMOS];
-static int oncolss[MAXNUMOS];
-
-int load_object_samples(const char* folder)
-{
-	char buffer[1024];
-	FILE* list;
-
-	//
-	printf("Loading object samples from '%s'\n", folder);
-
-	//
-	sprintf(buffer, "%s/%s", folder, "list.txt");
-
-	list = fopen(buffer, "r");
-
-	if(!list)
-		return 0;
-
-	//
-	numos = 0;
-
-	while(fscanf(list, "%s", buffer) == 1) // read image name
-	{
-		char fullpath[1024];
-
-		int nrows, ncols;
-		uint8_t* opixels;
-		int i, n;
-
-		//
-		if(numos >= MAXNUMOS)
-		{
-			printf("maximum allowed number of object samples exceeded: terminating ...\n");
-
-			return 0;
-		}
-
-		// load image
-		sprintf(fullpath, "%s/%s", folder, buffer);
-
-		if(!loadrid(&opixels, &nrows, &ncols, fullpath))
-			return 0;
-
-		// number of samples associated with this image
-		if(fscanf(list, "%d", &n) != 1)
-			return 0;
-
-		// get samples
-		for(i=0; i<n; ++i)
-		{
-			int r, c, s;
-
-			//
-			if(fscanf(list, "%d %d %d", &r, &c, &s) != 3)
-				return 0;
-
-			//
-			ors[numos] = r;
-			ocs[numos] = c;
-			oss[numos] = s;
-
-			opixelss[numos] = opixels;
-			onrowss[numos] = nrows;
-			oncolss[numos] = ncols;
-
-			//
-			++numos;
-		}
-	}
-
-	fclose(list);
-
-	return 1;
-}
-
-/*
-	background images
-*/
-
-#define MAXNUMBS 100000
-
-static int numbs = 0;
-
-static uint8_t* bpixelss[MAXNUMBS];
-int bnrowss[MAXNUMBS];
-int bncolss[MAXNUMBS];
-
-int load_background_images(char* folder)
-{
-	FILE* list;
-	char path[1024], name[1024];
-
-	//
-	printf("Loading background images from '%s'\n", folder);
-
-	//
-	sprintf(path, "%s/list.txt", folder);
-
-	list = fopen(path, "r");
-
-	if(!list)
-		return 0;
-
-	//
-	while(fscanf(list, "%s", name)==1 && numbs<MAXNUMBS)
-	{
-		//
-		sprintf(path, "%s/%s", folder, name);
-
-		//
-		if(loadrid(&bpixelss[numbs], &bnrowss[numbs], &bncolss[numbs], path))
-			++numbs;
-	}
-
-	//
-	fclose(list);
-
-	//
-	return 1;
 }
 
 /*
@@ -613,7 +528,7 @@ int save_to_file(const char* path)
 	
 */
 
-float get_tree_output(int i, int r, int c, int sr, int sc, uint8_t pixels[], int nrows, int ncols, int ldim)
+float get_tree_output(int i, int r, int c, int sr, int sc, int iind)
 {
 	int idx, j;
 
@@ -621,15 +536,15 @@ float get_tree_output(int i, int r, int c, int sr, int sc, uint8_t pixels[], int
 	idx = 1;
 
 	for(j=0; j<tdepth; ++j)
-		idx = 2*idx + bintest(tcodes[i][idx-1], r, c, sr, sc, pixels, nrows, ncols, ldim);
+		idx = 2*idx + bintest(tcodes[i][idx-1], r, c, sr, sc, iind);
 
 	//
 	return luts[i][idx - (1<<tdepth)];
 }
 
-int classify_region(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)
+int classify_region(float* o, int r, int c, int s, int iind)
 {
-	int i, j, sr, sc;
+	int i, sr, sc;
 
 	//
 	if(!ntrees)
@@ -645,7 +560,7 @@ int classify_region(float* o, int r, int c, int s, uint8_t pixels[], int nrows, 
 	for(i=0; i<ntrees; ++i)
 	{
 		//
-		*o += get_tree_output(i, r, c, sr, sc, pixels, nrows, ncols, ldim);
+		*o += get_tree_output(i, r, c, sr, sc, iind);
 
 		//
 		if(*o <= thresholds[i])
@@ -656,11 +571,9 @@ int classify_region(float* o, int r, int c, int s, uint8_t pixels[], int nrows, 
 	return 1;
 }
 
-int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int rs[], int cs[], int ss[], uint8_t* ppixels[], int nrowss[], int ncolss[], float os[], int np, int nn)
+int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int np, int nn)
 {
 	int i;
-
-	float* tvals;
 
 	int* srs;
 	int* scs;
@@ -669,15 +582,6 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 	double wsum;
 
 	float threshold, tpr, fpr;
-
-	//
-	tvals = (float*)malloc((np+nn)*sizeof(float));
-
-	for(i=0; i<np+nn; ++i)
-		if(classs[i])
-			tvals[i] = +1.0f; // object
-		else
-			tvals[i] = -1.0f; // non-object
 
 	//
 	srs = (int*)malloc((np+nn)*sizeof(int));
@@ -706,7 +610,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 
 		for(i=0; i<np+nn; ++i)
 		{
-			if(classs[i])
+			if(tvals[i] > 0)
 				ws[i] = exp(-1.0*os[i])/np;
 			else
 				ws[i] = exp(+1.0*os[i])/nn;
@@ -720,7 +624,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 		// grow a tree ...
 		t = getticks();
 
-		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, srs, scs, ppixels, nrowss, ncolss, ncolss, ws, np+nn);
+		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, srs, scs, iinds, ws, np+nn);
 
 		printf("\r");
 		printf("	tree %d (%f [s]) ...", ntrees+1, getticks()-t);
@@ -735,7 +639,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 			float o;
 
 			//
-			o = get_tree_output(ntrees-1, rs[i], cs[i], srs[i], scs[i], ppixels[i], nrowss[i], ncolss[i], ncolss[i]);
+			o = get_tree_output(ntrees-1, rs[i], cs[i], srs[i], scs[i], iinds[i]);
 
 			//
 			os[i] += o;
@@ -755,9 +659,9 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 			//
 			for(i=0; i<np+nn; ++i)
 			{
-				if( classs[i] && os[i]>threshold)
+				if( tvals[i]>0 && os[i]>threshold)
 					++numtps;
-				if(!classs[i] && os[i]>threshold)
+				if(	tvals[i]<0 && os[i]>threshold)
 					++numfps;
 			}
 
@@ -778,8 +682,6 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 	printf("	threshold set to %f\n", threshold);
 
 	//
-	free(tvals);
-
 	free(srs);
 	free(scs);
 
@@ -789,7 +691,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, int classs[], int
 	return 1;
 }
 
-float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* ppixels[], int nrowss[], int ncolss[], float os[], int maxn, int* np, int* nn)
+float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn)
 {
 	int i, n;
 
@@ -800,7 +702,7 @@ float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* 
 
 	#define NUMPRNGS 1024
 	static int prngsinitialized = 0;
-	static int64_t prngs[NUMPRNGS];
+	static uint64_t prngs[NUMPRNGS];
 
 	int stop;
 
@@ -816,19 +718,17 @@ float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* 
 		object samples
 	*/
 
-	for(i=0; i<numos; ++i)
-		if( classify_region(&os[n], ors[i], ocs[i], oss[i], opixelss[i], onrowss[i], oncolss[i], oncolss[i]) == 1 )
+	for(i=0; i<nobjects; ++i)
+		if( classify_region(&os[n], objects[i][0], objects[i][1], objects[i][2], objects[i][3]) == 1 )
 		{
 			//
-			rs[n] = ors[i];
-			cs[n] = ocs[i];
-			ss[n] = oss[i];
+			rs[n] = objects[i][0];
+			cs[n] = objects[i][1];
+			ss[n] = objects[i][2];
 
-			ppixels[n] = opixelss[i];
-			nrowss[n] = onrowss[i];
-			ncolss[n] = oncolss[i];
+			iinds[n] = objects[i][3];
 
-			classs[n] = +1;
+			tvals[n] = +1;
 
 			//
 			++n;
@@ -866,43 +766,38 @@ float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* 
 		while(!stop)
 		{
 			float o;
-			int idx, s, r, c, nrows, ncols;
+			int iind, s, r, c, nrows, ncols;
 			uint8_t* pixels;
 
 			//
-			idx = mwcrand_r(&prngs[thid])%numbs;
+			iind = background[ mwcrand_r(&prngs[thid])%nbackground ];
 
 			//
-			pixels = bpixelss[idx];
-			nrows = bnrowss[idx];
-			ncols = bncolss[idx];
+			r = mwcrand_r(&prngs[thid])%pdims[iind][0];
+			c = mwcrand_r(&prngs[thid])%pdims[iind][1];
+			s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
 
-			r = mwcrand_r(&prngs[thid])%bnrowss[idx];
-			c = mwcrand_r(&prngs[thid])%bncolss[idx];
-			s = mwcrand_r(&prngs[thid])%( 2*MIN(MIN(r, nrows-r), MIN(c, ncols-c)) + 1 );
-
-			if(s<24)
-				continue;
+			///s = mwcrand_r(&prngs[thid])%( 2*MIN(MIN(r, nrows-r), MIN(c, ncols-c)) + 1 );
+			///if(s<24)
+			///	continue;
 
 			//
-			if( classify_region(&o, r, c, s, pixels, nrows, ncols, ncols) == 1 )
+			if( classify_region(&o, r, c, s, iind) == 1 )
 			{
 				//we have a false positive ...
 				#pragma omp critical
 				{
-					if(n<maxn)
+					if(*nn<*np)
 					{
 						rs[n] = r;
 						cs[n] = c;
 						ss[n] = s;
 
-						ppixels[n] = pixels;
-						nrowss[n] = nrows;
-						ncolss[n] = ncols;
+						iinds[n] = iind;
 
 						os[n] = o;
 
-						classs[n] = 0;
+						tvals[n] = -1;
 
 						//
 						++n;
@@ -922,7 +817,7 @@ float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* 
 		print estimated true positive and false positive rates
 	*/
 
-	etpr = *np/(float)numos;
+	etpr = *np/(float)nobjects;
 	efpr = (float)( *nn/(double)nw );
 
 	printf("	tpr (sampling): %.8f\n", etpr);
@@ -938,19 +833,14 @@ float sample_training_data(int classs[], int rs[], int cs[], int ss[], uint8_t* 
 
 int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfpr, float minstagetpr, float maxstagefpr, int maxnumtreesperstage)
 {
-	#define MAXMAXNUMSAMPLES 2*MAXNUMOS
+	static int rs[2*MAX_N];
+	static int cs[2*MAX_N];
+	static int ss[2*MAX_N];
+	static int iinds[2*MAX_N];
 
-	static int rs[MAXMAXNUMSAMPLES];
-	static int cs[MAXMAXNUMSAMPLES];
-	static int ss[MAXMAXNUMSAMPLES];
+	static float tvals[2*MAX_N];
 
-	static int classs[MAXMAXNUMSAMPLES];
-
-	static uint8_t* ppixels[MAXMAXNUMSAMPLES];
-	static int nrowss[MAXMAXNUMSAMPLES];
-	static int ncolss[MAXMAXNUMSAMPLES];
-
-	static float os[MAXMAXNUMSAMPLES];
+	static float os[2*MAX_N];
 
 	//
 	int i, maxnumsamples, np, nn;
@@ -960,8 +850,6 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 		return 0;
 
 	//
-	maxnumsamples = 2*numos;
-
 	np = nn = 0;
 
 	for(i=0; i<maxnumstagestoappend; ++i)
@@ -977,7 +865,7 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 
 		printf("\n");
 
-		currentfpr = sample_training_data(classs, rs, cs, ss, ppixels, nrowss, ncolss, os, maxnumsamples, &np, &nn);
+		currentfpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 
 		if(currentfpr <= targetfpr)
 		{
@@ -994,7 +882,7 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 		printf("- learning a new stage ...\n");
 		printf("	npositives: %d, nnegatives: %d\n", np, nn);
 
-		learn_new_stage(minstagetpr, maxstagefpr, maxnumtreesperstage, classs, rs, cs, ss, ppixels, nrowss, ncolss, os, np, nn);
+		learn_new_stage(minstagetpr, maxstagefpr, maxnumtreesperstage, tvals, rs, cs, ss, iinds, os, np, nn);
 
 		/*
 			
@@ -1033,9 +921,8 @@ int main(int argc, char* argv[])
 	float t;
 
 	char* src;
+	char* path;
 	char* dst;
-	char* objspath;
-	char* nonobjimgspath;
 
 	int maxnstages;
 	float targetfpr;
@@ -1058,25 +945,24 @@ int main(int argc, char* argv[])
 			return 0;
 
 		//
-		printf("INITIALIZING: (%f, %f, %d)\n", tsr, tsc, tdepth);
+		printf("* initializing: (%f, %f, %d)\n", tsr, tsc, tdepth);
 
 		//
 		return 0;
 	}
-	else if(argc == 10)
+	else if(argc == 9)
 	{
 		src = argv[1];
 
-		objspath = argv[2];
-		nonobjimgspath = argv[3];
+		path = argv[2];
 
-		sscanf(argv[4], "%d", &maxnstages);
-		sscanf(argv[5], "%f", &targetfpr);
-		sscanf(argv[6], "%f", &minstagetpr);
-		sscanf(argv[7], "%f", &maxstagefpr);
-		sscanf(argv[8], "%d", &maxnumtreesperstage);
+		sscanf(argv[3], "%d", &maxnstages);
+		sscanf(argv[4], "%f", &targetfpr);
+		sscanf(argv[5], "%f", &minstagetpr);
+		sscanf(argv[6], "%f", &maxstagefpr);
+		sscanf(argv[7], "%d", &maxnumtreesperstage);
 
-		dst = argv[9];
+		dst = argv[8];
 	}
 	else
 	{
@@ -1089,21 +975,11 @@ int main(int argc, char* argv[])
 
 	//
 	t = getticks();
-	if(!load_object_samples(objspath))
+	if(!load_training_data(path))
 	{
-		printf("cannot load object samples ... exiting ...\n");
+		printf("* cannot load training data ... exiting ...\n");
 		return 1;
 	}
-	printf("%d object samples loaded in %f [s]\n", numos, getticks()-t);
-
-	//
-	t = getticks();
-	if(!load_background_images(nonobjimgspath))
-	{
-		printf("cannot load background images ... exiting ...\n");
-		return 1;
-	}
-	printf("%d background images loaded in %f [s]\n", numbs, getticks()-t);
 
 	//
 	t = getticks();
@@ -1111,7 +987,7 @@ int main(int argc, char* argv[])
 	append_stages(src, dst, maxnstages, targetfpr, minstagetpr, maxstagefpr, maxnumtreesperstage);
 	printf("FINISHED ...\n");
 
-	printf("elapsed time: %f [sec]\n", getticks()-t);
+	printf("* elapsed time: %f [sec]\n", getticks()-t);
 
 	printf("\n");
 
