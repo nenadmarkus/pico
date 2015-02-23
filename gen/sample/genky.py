@@ -3,40 +3,37 @@
 #
 
 #
+import sys
 import random
 import numpy
-import matplotlib.pyplot
-import matplotlib.image
-import matplotlib.cm
-from PIL import Image
-from PIL import ImageOps
+from scipy import misc
+#from PIL import Image
+#from PIL import ImageOps
 import struct
 import argparse
 import os
 
 #
 parser = argparse.ArgumentParser()
-parser.add_argument('srcfolder', help='input folder, source')
-parser.add_argument('dstfolder', help='output folder, destination')
+parser.add_argument('src', help='GENKI source folder')
 args = parser.parse_args()
 
 #
-srcfolder = args.srcfolder
-dstfolder = args.dstfolder
-
-# create a destination folder, if needed
-if not os.path.exists(dstfolder):
-   os.makedirs(dstfolder)
+src = args.src
 
 #
 plot = 0
 
 if plot:
+	import matplotlib.pyplot
+	import matplotlib.image
+	import matplotlib.cm
+
 	fig = matplotlib.pyplot.figure()
 	matplotlib.pyplot.show(block=False)
 
 #
-def save_as_rid(im, path):
+def print_as_rid(im):
 	#
 	# raw intensity data
 	#
@@ -46,11 +43,7 @@ def save_as_rid(im, path):
 	w = im.shape[1]
 
 	#
-	f = open(path, 'wb')
-
-	#
-	data = struct.pack('ii', w, h)
-	f.write(data)
+	hw = struct.pack('ii', h, w)
 
 	tmp = [None]*w*h
 	for y in range(0, h):
@@ -58,14 +51,14 @@ def save_as_rid(im, path):
 			tmp[y*w + x] = im[y, x]
 
 	#
-	data = struct.pack('%sB' % w*h, *tmp)
-	f.write(data)
+	pixels = struct.pack('%sB' % w*h, *tmp)
 
 	#
-	f.close()
+	sys.stdout.write(hw)
+	sys.stdout.write(pixels)
 
 #
-def export(im, r, c, s, folder, id, list):
+def export(im, r, c, s):
 	#
 	nrows = im.shape[0]
 	ncols = im.shape[1]
@@ -96,12 +89,9 @@ def export(im, r, c, s, folder, id, list):
 		s = ratio*s
 
 	#
-	list.write(id + '.rid\n')
-
-	#
 	nrands = 7;
 
-	list.write('\t%d\n' % nrands)
+	list = []
 
 	for i in range(0, nrands):
 		#
@@ -125,15 +115,17 @@ def export(im, r, c, s, folder, id, list):
 
 			response = input('Press Enter to continue...')
 
-		list.write('\t%d %d %d\n' % (int(rtmp), int(ctmp), int(stmp)))
-
-	list.write('\n')
-	list.flush()
+		list.append( (int(rtmp), int(ctmp), int(stmp)) )
 
 	#
-	save_as_rid(im, folder + '/' + id + '.rid')
+	print_as_rid(im)
 
-def mirror_and_export(im, r, c, s, folder, id, list):
+	sys.stdout.write( struct.pack('i', nrands) )
+
+	for i in range(0, nrands):
+		sys.stdout.write( struct.pack('iii', list[i][0], list[i][1], list[i][2]) )
+
+def mirror_and_export(im, r, c, s):
 	#
 	# exploit mirror symmetry of the face
 	#
@@ -145,24 +137,22 @@ def mirror_and_export(im, r, c, s, folder, id, list):
 	c = im.shape[1] - c
 
 	# export
-	export(im, r, c, s, folder, id, list)
+	export(im, r, c, s)
 
 # image list
-imlist = open(srcfolder + '/Subsets/GENKI-SZSL/GENKI-SZSL_Images.txt', 'r').readlines()
+imlist = open(src + '/Subsets/GENKI-SZSL/GENKI-SZSL_Images.txt', 'r').readlines()
 
 # object sample is specified by three coordinates (row, column and size; all in pixels)
-rs = [float(line.split()[1]) for line in open(srcfolder+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
-cs = [float(line.split()[0]) for line in open(srcfolder+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
-ss = [float(line.split()[2]) for line in open(srcfolder+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
+rs = [float(line.split()[1]) for line in open(src+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
+cs = [float(line.split()[0]) for line in open(src+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
+ss = [float(line.split()[2]) for line in open(src+'/Subsets/GENKI-SZSL/GENKI-SZSL_labels.txt', 'r').readlines()]
 
 #
-list = open(dstfolder + '/list.txt', 'w')
-
 n = 0
 
 for i in range(0, len(rs)):
-	# image path
-	path = srcfolder + '/files/' + imlist[i].strip()
+	# construct full image path
+	path = src + '/files/' + imlist[i].strip()
 
 	r = rs[i]
 	c = cs[i]
@@ -170,24 +160,16 @@ for i in range(0, len(rs)):
 
 	#
 	try:
-		im = Image.open(path).convert('L')
+		#im = Image.open(path).convert('L')
+		im = misc.imread(path)
 	except:
 		continue
-
-	print(path)
 
 	#
 	im = numpy.asarray(im)
 
 	#
-	id = 'face' + str(n)
-	export(im, r, c, s, dstfolder, id, list)
-	n = n+1
+	export(im, r, c, s)
 
 	# faces are symmetric and we exploit this here
-	id = 'face' + str(n)
-	mirror_and_export(im, r, c, s, dstfolder, id, list)
-	n = n+1
-
-#
-list.close()
+	mirror_and_export(im, r, c, s)
