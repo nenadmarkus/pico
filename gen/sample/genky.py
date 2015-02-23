@@ -160,8 +160,7 @@ for i in range(0, len(rs)):
 
 	#
 	try:
-		#im = Image.open(path).convert('L')
-		im = misc.imread(path)
+		im = Image.open(path).convert('L')
 	except:
 		continue
 

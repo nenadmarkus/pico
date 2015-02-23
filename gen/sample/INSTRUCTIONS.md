@@ -13,9 +13,9 @@ This tutorial will guide you through the process of learning your own face detec
 
 ## 3. Start the learning process
 
-Run the script `lrn.sh`/`lrn.bat` (depending on your OS) with appropriate parameters:
+Run the script `lrn.sh` with appropriate parameters:
 
-	$ lrn.* path/to/genki path/to/nonfaces
+	$ lrn.sh path/to/genki path/to/nonfaces
 
 Learning should finish in ~2 days on a modern machine with 4 CPU cores.
 

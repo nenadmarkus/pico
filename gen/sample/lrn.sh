@@ -6,7 +6,7 @@
 
 mkdir -p faces
 
-python preparefacesamplesfromgenki.py $1 faces
+python preparefacesamplesfromgenki.py $1 > trdata
 
 #
 # prepare non-face samples (background)
@@ -14,7 +14,7 @@ python preparefacesamplesfromgenki.py $1 faces
 
 mkdir -p nonfaces
 
-python preparebackground.py $2 nonfaces
+python preparebackground.py $2 >> trdata
 
 #
 # start the learning process
@@ -24,9 +24,9 @@ python preparebackground.py $2 nonfaces
 ./picolrn 1 1 6 d > log.txt
 
 # append stages
-./picolrn d faces nonfaces 1 1e-6 0.980 0.5 1 d >> log.txt
-./picolrn d faces nonfaces 1 1e-6 0.985 0.5 1 d >> log.txt
-./picolrn d faces nonfaces 1 1e-6 0.990 0.5 2 d >> log.txt
-./picolrn d faces nonfaces 1 1e-6 0.995 0.5 3 d >> log.txt
-./picolrn d faces nonfaces 6 1e-6 0.997 0.5 10 d >> log.txt
-./picolrn d faces nonfaces 10 1e-6 0.999 0.5 20 d >> log.txt
+./picolrn d trdata 1 1e-6 0.980 0.5 1 d >> log.txt
+./picolrn d trdata 1 1e-6 0.985 0.5 1 d >> log.txt
+./picolrn d trdata 1 1e-6 0.990 0.5 2 d >> log.txt
+./picolrn d trdata 1 1e-6 0.995 0.5 3 d >> log.txt
+./picolrn d trdata 6 1e-6 0.997 0.5 10 d >> log.txt
+./picolrn d trdata 10 1e-6 0.999 0.5 20 d >> log.txt
