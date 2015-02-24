@@ -29,9 +29,6 @@ if plot:
 	import matplotlib.image
 	import matplotlib.cm
 
-	fig = matplotlib.pyplot.figure()
-	matplotlib.pyplot.show(block=False)
-
 #
 def write_rid(im):
 	#
@@ -91,7 +88,7 @@ def export(im, r, c, s):
 	#
 	nrands = 7;
 
-	list = []
+	lst = []
 
 	for i in range(0, nrands):
 		#
@@ -111,11 +108,9 @@ def export(im, r, c, s):
 
 			matplotlib.pyplot.imshow(im, cmap=matplotlib.cm.Greys_r)
 
-			matplotlib.pyplot.draw()
+			matplotlib.pyplot.show()
 
-			response = input()
-
-		list.append( (int(rtmp), int(ctmp), int(stmp)) )
+		lst.append( (int(rtmp), int(ctmp), int(stmp)) )
 
 	#
 	write_rid(im)
@@ -123,7 +118,7 @@ def export(im, r, c, s):
 	sys.stdout.buffer.write( struct.pack('i', nrands) )
 
 	for i in range(0, nrands):
-		sys.stdout.buffer.write( struct.pack('iii', list[i][0], list[i][1], list[i][2]) )
+		sys.stdout.buffer.write( struct.pack('iii', lst[i][0], lst[i][1], lst[i][2]) )
 
 def mirror_and_export(im, r, c, s):
 	#

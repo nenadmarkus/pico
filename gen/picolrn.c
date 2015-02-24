@@ -909,6 +909,68 @@ int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfp
 	
 */
 
+int learn_with_default_parameters(char* trdata, char* dst)
+{
+	static int rs[2*MAX_N];
+	static int cs[2*MAX_N];
+	static int ss[2*MAX_N];
+	static int iinds[2*MAX_N];
+
+	static float tvals[2*MAX_N];
+
+	static float os[2*MAX_N];
+
+	int i, np, nn;
+	float fpr;
+
+	//
+	if(!load_training_data(trdata))
+	{
+		printf("* cannot load training data ...\n");
+		return 0;
+	}
+
+	//
+	tsr = 1.0f;
+	tsc = 1.0f;
+
+	tdepth = 5;
+
+	if(!save_to_file(dst))
+			return 0;
+
+	//
+	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	learn_new_stage(0.9800f, 0.5f, 1, tvals, rs, cs, ss, iinds, os, np, nn);
+	save_to_file(dst);
+
+	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	learn_new_stage(0.9850f, 0.5f, 2, tvals, rs, cs, ss, iinds, os, np, nn);
+	save_to_file(dst);
+
+	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	learn_new_stage(0.9900f, 0.5f, 4, tvals, rs, cs, ss, iinds, os, np, nn);
+	save_to_file(dst);
+
+	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	learn_new_stage(0.9950f, 0.5f, 8, tvals, rs, cs, ss, iinds, os, np, nn);
+	save_to_file(dst);
+
+	//
+	while(sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn) > 1e-6f)
+	{
+		learn_new_stage(0.9975f, 0.5f, 16, tvals, rs, cs, ss, iinds, os, np, nn);
+		save_to_file(dst);
+	}
+
+	//
+	printf("* target FPR achieved ... terminating the learning process ...\n");
+}
+
+/*
+	
+*/
+
 const char* howto()
 {
 	return
@@ -930,6 +992,10 @@ int main(int argc, char* argv[])
 	int tdepths, maxnumtreesperstage;
 
 	//
+	if(argc == 3)
+	{
+		learn_with_default_parameters(argv[1], argv[2]);
+	}
 	if(argc == 5)
 	{
 		sscanf(argv[1], "%f", &tsr);

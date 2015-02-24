@@ -4,7 +4,7 @@
 # prepare face samples (from the GENKI dataset)
 #
 
-python genky.py $1 > trdata
+python genki.py $1 > trdata
 
 #
 # prepare non-face samples (background)
