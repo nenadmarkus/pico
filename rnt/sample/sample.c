@@ -89,14 +89,29 @@ void process_image(IplImage* frame, int draw, int print)
 	static IplImage* gray = 0;
 
 	/*
-		IMPORTANT: these parameters are highly specific for each detection cascade and should be determined experimentally
+		IMPORTANT:
+			* these parameters are highly specific for each detection cascade
+			  (determine them experimentally)
 	*/
 
-	int (*run_detection_cascade)(float*, int, int, int, uint8_t*, int, int, int) = run_facefinder;
+	// * this function should be generated with picogen from a detection cascade output by picolrn
+	int (*run_detection_cascade)(float*, int, int, int, uint8_t*, int, int, int)
+		= run_facefinder;
 
-	float qthreshold = 5.0f; // detection quality threshold, you can vary TPR and FPR with this value
-	float scalefactor = 1.1f; // how much to rescale the window during the multiscale detection process
-	float stridefactor = 0.1f; // how much to move the window between neighboring detections
+	// * detection quality threshold (must be >= 0.0f)
+	// * you can vary the TPR and FPR with this value
+	// * if you're experiencing too many false positives, try a larger number here (for example, 7.5f) 
+	float qthreshold = 5.0f;
+
+	// * how much to rescale the window during the multiscale detection process
+	// * increasing this value leads to lower number of detections and higher processing speed
+	// * for example, set to 1.2f if you're using pico on a mobile device
+	float scalefactor = 1.1f;
+
+	// * how much to move the window between neighboring detections
+	// * increasing this value leads to lower number of detections and higher processing speed
+	// * for example, set to 0.05f if you want really high recall
+	float stridefactor = 0.1f;
 
 	/*
 		...
