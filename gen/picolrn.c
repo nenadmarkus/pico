@@ -332,8 +332,8 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 {
 	int i, nrands;
 
-	int32_t tcodelist[2048];
-	float spliterrors[2048], bestspliterror;
+	int32_t tmptcodes[2048];
+	float es[2048], e;
 
 	int n0;
 
@@ -380,22 +380,22 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 	nrands = NRANDS;
 
 	for(i=0; i<nrands; ++i)
-		tcodelist[i] = mwcrand();
+		tmptcodes[i] = mwcrand();
 
 	//
 	#pragma omp parallel for
 	for(i=0; i<nrands; ++i)
-		spliterrors[i] = get_split_error(tcodelist[i], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
+		es[i] = get_split_error(tmptcodes[i], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
 
 	//
-	bestspliterror = spliterrors[0];
-	tcodes[nodeidx] = tcodelist[0];
+	e = es[0];
+	tcodes[nodeidx] = tmptcodes[0];
 
 	for(i=1; i<nrands; ++i)
-		if(bestspliterror > spliterrors[i])
+		if(e > es[i])
 		{
-			bestspliterror = spliterrors[i];
-			tcodes[nodeidx] = tcodelist[i];
+			e = es[i];
+			tcodes[nodeidx] = tmptcodes[i];
 		}
 
 	//
@@ -694,6 +694,7 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	int64_t nw;
 	float etpr, efpr;
 
+
 	int t;
 
 	#define NUMPRNGS 1024
@@ -719,6 +720,7 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 			rs[n] = objects[i][0];
 			cs[n] = objects[i][1];
 			ss[n] = objects[i][2];
+
 
 			iinds[n] = objects[i][3];
 
@@ -846,6 +848,7 @@ int learn_with_default_parameters(char* trdata, char* dst)
 	float fpr;
 
 	//
+
 	if(!load_training_data(trdata))
 	{
 		printf("* cannot load training data ...\n");
