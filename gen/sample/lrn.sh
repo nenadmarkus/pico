@@ -4,17 +4,13 @@
 # prepare face samples (from the GENKI dataset)
 #
 
-mkdir -p faces
-
-python preparefacesamplesfromgenki.py $1 > trdata
+python genky.py $1 > trdata
 
 #
 # prepare non-face samples (background)
 #
 
-mkdir -p nonfaces
-
-python preparebackground.py $2 >> trdata
+python background.py $2 >> trdata
 
 #
 # start the learning process

@@ -3,6 +3,7 @@
 #
 
 #
+import sys
 import os
 import numpy
 from PIL import Image
@@ -18,7 +19,7 @@ args = parser.parse_args()
 src = args.src
 
 #
-def print_as_rid(im):
+def write_rid(im):
 	#
 	# raw intensity data
 	#
@@ -39,11 +40,11 @@ def print_as_rid(im):
 	pixels = struct.pack('%sB' % w*h, *tmp)
 
 	#
-	sys.stdout.write(hw)
-	sys.stdout.write(pixels)
+	sys.stdout.buffer.write(hw)
+	sys.stdout.buffer.write(pixels)
 
 #
-for dirpath, dirnames, filenames in os.walk(srcfolder):
+for dirpath, dirnames, filenames in os.walk(src):
 	for filename in filenames:
 		#
 		path = dirpath + '/' + filename
@@ -55,5 +56,6 @@ for dirpath, dirnames, filenames in os.walk(srcfolder):
 			continue
 
 		#
-		print_as_rid(im)
-		sys.stdout.write( struct.pack('i', 0) )
+		write_rid(im)
+		sys.stdout.buffer.write( struct.pack('i', 0) )
+

@@ -7,8 +7,8 @@ import sys
 import random
 import numpy
 from scipy import misc
-#from PIL import Image
-#from PIL import ImageOps
+from PIL import Image
+from PIL import ImageOps
 import struct
 import argparse
 import os
@@ -33,7 +33,7 @@ if plot:
 	matplotlib.pyplot.show(block=False)
 
 #
-def print_as_rid(im):
+def write_rid(im):
 	#
 	# raw intensity data
 	#
@@ -54,8 +54,8 @@ def print_as_rid(im):
 	pixels = struct.pack('%sB' % w*h, *tmp)
 
 	#
-	sys.stdout.write(hw)
-	sys.stdout.write(pixels)
+	sys.stdout.buffer.write(hw)
+	sys.stdout.buffer.write(pixels)
 
 #
 def export(im, r, c, s):
@@ -113,17 +113,17 @@ def export(im, r, c, s):
 
 			matplotlib.pyplot.draw()
 
-			response = input('Press Enter to continue...')
+			response = input()
 
 		list.append( (int(rtmp), int(ctmp), int(stmp)) )
 
 	#
-	print_as_rid(im)
+	write_rid(im)
 
-	sys.stdout.write( struct.pack('i', nrands) )
+	sys.stdout.buffer.write( struct.pack('i', nrands) )
 
 	for i in range(0, nrands):
-		sys.stdout.write( struct.pack('iii', list[i][0], list[i][1], list[i][2]) )
+		sys.stdout.buffer.write( struct.pack('iii', list[i][0], list[i][1], list[i][2]) )
 
 def mirror_and_export(im, r, c, s):
 	#
@@ -172,3 +172,4 @@ for i in range(0, len(rs)):
 
 	# faces are symmetric and we exploit this here
 	mirror_and_export(im, r, c, s)
+
