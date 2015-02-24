@@ -22,7 +22,7 @@ The file `trdata` can now be processed with `picolrn`.
 
 ## 4. Start the training process
 
-The following command will start the training process with the default parameters:
+Start with default parameters:
 
 	$ ./picolrn trdata d
 
