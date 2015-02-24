@@ -44,11 +44,7 @@ float getticks()
 	struct timespec ts;
 
 	if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
-	{
-		printf("clock_gettime error\n");
-
 		return -1.0f;
-	}
 
 	return ts.tv_sec + 1e-9f*ts.tv_nsec;
 }
@@ -454,7 +450,7 @@ float thresholds[1024];
 	
 */
 
-int load_from_file(const char* path)
+int load_cascade_from_file(const char* path)
 {
 	int i;
 	FILE* file;
@@ -489,7 +485,7 @@ int load_from_file(const char* path)
 	return 1;
 }
 
-int save_to_file(const char* path)
+int save_cascade_to_file(const char* path)
 {
 	int i;
 	FILE* file;
@@ -584,6 +580,9 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 	float threshold, tpr, fpr;
 
 	//
+	printf("* learning new stage ...\n");
+
+	//
 	srs = (int*)malloc((np+nn)*sizeof(int));
 	scs = (int*)malloc((np+nn)*sizeof(int));
 
@@ -605,6 +604,9 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 		float t;
 		int numtps, numfps;
 
+		//
+		t = getticks();
+
 		// compute weights ...
 		wsum = 0.0;
 
@@ -622,12 +624,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 			ws[i] /= wsum;
 
 		// grow a tree ...
-		t = getticks();
-
 		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, srs, scs, iinds, ws, np+nn);
-
-		printf("\r");
-		printf("	tree %d (%f [s]) ...", ntrees+1, getticks()-t);
 
 		thresholds[ntrees] = -1337.0f;
 
@@ -671,15 +668,14 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 		}
 		while(tpr<mintpr);
 
-		printf(" tpr=%f, fpr=%f\t", tpr, fpr);
+		printf("	** tree %d (%d [s]) ... stage tpr=%f, stage fpr=%f\n", ntrees, (int)(getticks()-t), tpr, fpr);
 		fflush(stdout);
 	}
 
 	//
 	thresholds[ntrees-1] = threshold;
 
-	printf("\n");
-	printf("	threshold set to %f\n", threshold);
+	printf("	** threshold set to %f\n", threshold);
 
 	//
 	free(srs);
@@ -707,8 +703,6 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	int stop;
 
 	//
-	printf("- sampling training data (randomized) ...\n");
-
 	t = getticks();
 
 	//
@@ -808,8 +802,11 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 				}
 			}
 
-			#pragma omp atomic
-			++nw;
+			if(!stop)
+			{
+				#pragma omp atomic
+				++nw;
+			}
 		}
 	}
 
@@ -820,9 +817,10 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	etpr = *np/(float)nobjects;
 	efpr = (float)( *nn/(double)nw );
 
-	printf("	tpr (sampling): %.8f\n", etpr);
-	printf("	fpr (sampling): %.8f (%d/%lld)\n", efpr, *nn, (long long int)nw);
-	printf("	elapsed time: %f  [sec]\n", getticks()-t);
+	printf("* sampling finished ...\n");
+	printf("	** elapsed time: %d\n", (int)(getticks()-t));
+	printf("	** cascade TPR=%.8f\n", etpr);
+	printf("	** cascade FPR=%.8f (%d/%lld)\n", efpr, *nn, (long long int)nw);
 
 	/*
 		
@@ -831,95 +829,19 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	return efpr;
 }
 
-int append_stages(char* src, char* dst, int maxnumstagestoappend, float targetfpr, float minstagetpr, float maxstagefpr, int maxnumtreesperstage)
-{
-	static int rs[2*MAX_N];
-	static int cs[2*MAX_N];
-	static int ss[2*MAX_N];
-	static int iinds[2*MAX_N];
-
-	static float tvals[2*MAX_N];
-
-	static float os[2*MAX_N];
-
-	//
-	int i, maxnumsamples, np, nn;
-
-	//
-	if(!load_from_file(src))
-		return 0;
-
-	//
-	np = nn = 0;
-
-	for(i=0; i<maxnumstagestoappend; ++i)
-	{
-		float currentfpr;
-
-		printf("--------------------------------------------------------------------\n");
-		printf("%d/%d\n", i+1, maxnumstagestoappend);
-
-		/*
-			sample training set
-		*/
-
-		printf("\n");
-
-		currentfpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-
-		if(currentfpr <= targetfpr)
-		{
-			printf("- target FPR achieved ... terminating the learning process ...\n");
-
-			break;
-		}
-
-		/*
-			learn decision trees in the current stage
-		*/
-
-		printf("\n");
-		printf("- learning a new stage ...\n");
-		printf("	npositives: %d, nnegatives: %d\n", np, nn);
-
-		learn_new_stage(minstagetpr, maxstagefpr, maxnumtreesperstage, tvals, rs, cs, ss, iinds, os, np, nn);
-
-		/*
-			
-		*/
-
-		//
-		printf("\n");
-
-		if(save_to_file(dst))
-			printf("- saving partial results to '%s' ...\n", dst);
-		else
-			printf("- saving results to '%s' has failed ...\n", dst);
-
-		printf("\n");
-	}
-
-	printf("--------------------------------------------------------------------\n");
-
-	//
-	return 1;
-}
-
 /*
 	
 */
 
+static int rs[2*MAX_N];
+static int cs[2*MAX_N];
+static int ss[2*MAX_N];
+static int iinds[2*MAX_N];
+static float tvals[2*MAX_N];
+static float os[2*MAX_N];
+
 int learn_with_default_parameters(char* trdata, char* dst)
 {
-	static int rs[2*MAX_N];
-	static int cs[2*MAX_N];
-	static int ss[2*MAX_N];
-	static int iinds[2*MAX_N];
-
-	static float tvals[2*MAX_N];
-
-	static float os[2*MAX_N];
-
 	int i, np, nn;
 	float fpr;
 
@@ -936,31 +858,41 @@ int learn_with_default_parameters(char* trdata, char* dst)
 
 	tdepth = 5;
 
-	if(!save_to_file(dst))
+	if(!save_cascade_to_file(dst))
 			return 0;
 
 	//
-	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 	learn_new_stage(0.9800f, 0.5f, 1, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_to_file(dst);
+	save_cascade_to_file(dst);
 
-	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	printf("\n");
+
+	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 	learn_new_stage(0.9850f, 0.5f, 2, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_to_file(dst);
+	save_cascade_to_file(dst);
 
-	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	printf("\n");
+
+	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 	learn_new_stage(0.9900f, 0.5f, 4, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_to_file(dst);
+	save_cascade_to_file(dst);
 
-	fpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+	printf("\n");
+
+	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 	learn_new_stage(0.9950f, 0.5f, 8, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_to_file(dst);
+	save_cascade_to_file(dst);
+
+	printf("\n");
 
 	//
 	while(sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn) > 1e-6f)
 	{
 		learn_new_stage(0.9975f, 0.5f, 16, tvals, rs, cs, ss, iinds, os, np, nn);
-		save_to_file(dst);
+		save_cascade_to_file(dst);
+
+		printf("\n");
 	}
 
 	//
@@ -980,16 +912,8 @@ const char* howto()
 
 int main(int argc, char* argv[])
 {
-	float t;
-
-	char* src;
-	char* path;
-	char* dst;
-
-	int maxnstages;
-	float targetfpr;
-	float minstagetpr, maxstagefpr;
-	int tdepths, maxnumtreesperstage;
+	// initialize the PRNG
+	smwcrand(time(0));
 
 	//
 	if(argc == 3)
@@ -1007,7 +931,7 @@ int main(int argc, char* argv[])
 		ntrees = 0;
 
 		//
-		if(!save_to_file(argv[4]))
+		if(!save_cascade_to_file(argv[4]))
 			return 0;
 
 		//
@@ -1016,46 +940,36 @@ int main(int argc, char* argv[])
 		//
 		return 0;
 	}
-	else if(argc == 9)
+	else if(argc == 7)
 	{
-		src = argv[1];
+		float tpr, fpr;
+		int n, np, nn;
 
-		path = argv[2];
+		//
+		if(!load_cascade_from_file(argv[1]))
+			return 1;
 
-		sscanf(argv[3], "%d", &maxnstages);
-		sscanf(argv[4], "%f", &targetfpr);
-		sscanf(argv[5], "%f", &minstagetpr);
-		sscanf(argv[6], "%f", &maxstagefpr);
-		sscanf(argv[7], "%d", &maxnumtreesperstage);
+		if(!load_training_data(argv[2]))
+			return 1;
 
-		dst = argv[8];
+		//
+		sscanf(argv[3], "%f", &tpr);
+		sscanf(argv[4], "%f", &fpr);
+		sscanf(argv[5], "%d", &n);
+
+		//
+		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+		learn_new_stage(tpr, fpr, n, tvals, rs, cs, ss, iinds, os, np, nn);
+
+		//
+		if(!save_cascade_to_file(argv[6]))
+			return 1;
 	}
 	else
 	{
 		printf("%s", howto());
 		return 0;
 	}
-
-	// initialize PRNG
-	smwcrand(time(0));
-
-	//
-	t = getticks();
-	if(!load_training_data(path))
-	{
-		printf("* cannot load training data ... exiting ...\n");
-		return 1;
-	}
-
-	//
-	t = getticks();
-	printf("LEARNING ...\n");
-	append_stages(src, dst, maxnstages, targetfpr, minstagetpr, maxstagefpr, maxnumtreesperstage);
-	printf("FINISHED ...\n");
-
-	printf("* elapsed time: %f [sec]\n", getticks()-t);
-
-	printf("\n");
 
 	//
 	return 0;
