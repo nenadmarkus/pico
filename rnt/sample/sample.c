@@ -28,22 +28,6 @@
 #include "facefinder.c"
 
 /*
-	object detection parameters
-*/
-
-#ifndef QCUTOFF
-#define QCUTOFF 3.0f
-#endif
-
-#ifndef SCALEFACTOR
-#define SCALEFACTOR 1.2f
-#endif
-
-#ifndef STRIDEFACTOR
-#define STRIDEFACTOR 0.1f
-#endif
-
-/*
 	portable time function
 */
 
@@ -95,7 +79,7 @@ void process_image(IplImage* frame, int draw, int print)
 	int i;
 	float t;
 
-	unsigned char* pixels;
+	uint8_t* pixels;
 	int nrows, ncols, ldim;
 
 	#define MAXNDETECTIONS 2048
@@ -103,6 +87,20 @@ void process_image(IplImage* frame, int draw, int print)
 	float qs[MAXNDETECTIONS], rs[MAXNDETECTIONS], cs[MAXNDETECTIONS], ss[MAXNDETECTIONS];
 
 	static IplImage* gray = 0;
+
+	/*
+		IMPORTANT: these parameters are highly specific for each detection cascade and should be determined experimentally
+	*/
+
+	int (*run_detection_cascade)(float*, int, int, int, uint8_t*, int, int, int) = run_facefinder;
+
+	float qthreshold = 5.0f; // detection quality threshold, you can vary TPR and FPR with this value
+	float scalefactor = 1.1f; // how much to rescale the window during the multiscale detection process
+	float stridefactor = 0.1f; // how much to move the window between neighboring detections
+
+	/*
+		...
+	*/
 
 	// grayscale image
 	if(!gray)
@@ -113,21 +111,21 @@ void process_image(IplImage* frame, int draw, int print)
 		cvCopy(frame, gray, 0);
 
 	// get relevant image data
-	pixels = (unsigned char*)gray->imageData;
+	pixels = (uint8_t*)gray->imageData;
 	nrows = gray->height;
 	ncols = gray->width;
 	ldim = gray->widthStep;
 
-	// actually, all the smart stuff happens here
+	// perform detection with the pico library
 	t = getticks();
-	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_facefinder, pixels, nrows, ncols, ldim, SCALEFACTOR, STRIDEFACTOR, minsize, MIN(nrows, ncols));
+	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
 	ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
 	t = getticks() - t;
 
 	// if the flag is set, draw each detection
 	if(draw)
 		for(i=0; i<ndetections; ++i)
-			if(qs[i]>=QCUTOFF) // check the confidence threshold
+			if(qs[i]>=qthreshold) // check the confidence threshold
 				cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 
 	// if the flag is set, print the results to standard output
@@ -135,7 +133,7 @@ void process_image(IplImage* frame, int draw, int print)
 	{
 		//
 		for(i=0; i<ndetections; ++i)
-			if(qs[i]>=QCUTOFF) // check the confidence threshold
+			if(qs[i]>=qthreshold) // check the confidence threshold
 				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 
 		//
@@ -154,44 +152,51 @@ void process_webcam_frames()
 
 	const char* windowname = "--------------------";
 
-	// try to initialize video capture from the default webcam
+	//
 	capture = cvCaptureFromCAM(0);
+
 	if(!capture)
 	{
-		printf("Cannot initialize video capture!\n");
+		printf("* cannot initialize video capture ...\n");
 		return;
 	}
 
-	// start the main loop in which we'll process webcam output
+	// the main loop
 	framecopy = 0;
 	stop = 0;
+
 	while(!stop)
 	{
 		// wait 5 miliseconds
 		int key = cvWaitKey(5);
 
-		// retrieve a pointer to the image acquired from the webcam
+		// get the frame from webcam
 		if(!cvGrabFrame(capture))
-			break;
-		frame = cvRetrieveFrame(capture, 1);
+		{
+			stop = 1;
+			frame = 0;
+		}
+		else
+			frame = cvRetrieveFrame(capture, 1);
 
-		// we terminate the loop if we don't get any data from the webcam or the user has pressed 'q'
+		// we terminate the loop if the user has pressed 'q'
 		if(!frame || key=='q')
 			stop = 1;
 		else
 		{
-			// we mustn't tamper with internal OpenCV buffers and that's the reason why we're making a copy of the current frame
+			// we mustn't tamper with internal OpenCV buffers
 			if(!framecopy)
 				framecopy = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, frame->nChannels);
 			cvCopy(frame, framecopy, 0);
 
-			// webcam outputs mirrored frames (at least on my machines); you can safely comment out this line if you find it unnecessary
+			// webcam outputs mirrored frames (at least on my machines)
+			// you can safely comment out this line if you find it unnecessary
 			cvFlip(framecopy, framecopy, 1);
 
-			// all the smart stuff happens in the following function
+			// ...
 			process_image(framecopy, 1, 0);
 
-			// display the image to the user
+			// ...
 			cvShowImage(windowname, framecopy);
 		}
 	}
@@ -229,7 +234,7 @@ int main(int argc, char* argv[])
 		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
-			printf("Cannot load image!\n");
+			printf("* cannot load image!\n");
 			return 1;
 		}
 
@@ -244,7 +249,7 @@ int main(int argc, char* argv[])
 		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
 		if(!img)
 		{
-			printf("Cannot load image!\n");
+			printf("* cannot load image!\n");
 			return 1;
 		}
 
