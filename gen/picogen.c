@@ -151,11 +151,12 @@ void print_c_code(const char* name, float rotation)
 		}
 
 	//
-	printf("int %s(float* o, int r, int c, int s, uint8_t pixels[], int nrows, int ncols, int ldim)\n", name);
+	printf("int %s(float* o, int r, int c, int s, void* vppixels, int nrows, int ncols, int ldim)\n", name);
 	printf("{\n");
 
 	//
 	printf("	int i, j, idx, sr, sc;\n");
+	printf("	uint8_t* pixels;\n");
 
 	//
 	printf("\n");
@@ -201,6 +202,9 @@ void print_c_code(const char* name, float rotation)
 	printf("\n");
 	printf("	if( (256*r+%d*sr)/256>=nrows || (256*r-%d*sr)/256<0 || (256*c+%d*sc)/256>=ncols || (256*c-%d*sc)/256<0 )\n", maxr, maxr, maxc, maxc);
 	printf("		return -1;\n");
+
+	printf("\n");
+	printf("	pixels = (uint8_t*)vppixels;\n");
 
 	//
 	printf("\n");

@@ -95,7 +95,7 @@ void process_image(IplImage* frame, int draw, int print)
 	*/
 
 	// * this function should be generated with picogen from a detection cascade output by picolrn
-	int (*run_detection_cascade)(float*, int, int, int, uint8_t*, int, int, int)
+	int (*run_detection_cascade)(float*, int, int, int, void*, int, int, int)
 		= run_facefinder;
 
 	// * detection quality threshold (must be >= 0.0f)
