@@ -761,6 +761,10 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 
 		while(!stop)
 		{
+			/*
+				data mine hard negatives
+			*/
+
 			float o;
 			int iind, s, r, c, nrows, ncols;
 			uint8_t* pixels;
@@ -772,10 +776,6 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 			r = mwcrand_r(&prngs[thid])%pdims[iind][0];
 			c = mwcrand_r(&prngs[thid])%pdims[iind][1];
 			s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
-
-			///s = mwcrand_r(&prngs[thid])%( 2*MIN(MIN(r, nrows-r), MIN(c, ncols-c)) + 1 );
-			///if(s<24)
-			///	continue;
 
 			//
 			if( classify_region(&o, r, c, s, iind) == 1 )
@@ -813,7 +813,7 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	}
 
 	/*
-		print estimated true positive and false positive rates
+		print the estimated true positive and false positive rates
 	*/
 
 	etpr = *np/(float)nobjects;
@@ -848,7 +848,6 @@ int learn_with_default_parameters(char* trdata, char* dst)
 	float fpr;
 
 	//
-
 	if(!load_training_data(trdata))
 	{
 		printf("* cannot load training data ...\n");
