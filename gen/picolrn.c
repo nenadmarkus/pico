@@ -441,10 +441,10 @@ float tsr, tsc;
 int tdepth;
 int ntrees=0;
 
-int32_t tcodes[1024][1024];
-float luts[1024][1024];
+int32_t tcodes[4096][1024];
+float luts[4096][1024];
 
-float thresholds[1024];
+float thresholds[4096];
 
 /*
 	
