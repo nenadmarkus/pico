@@ -866,25 +866,25 @@ int learn_with_default_parameters(char* trdata, char* dst)
 
 	//
 	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9800f, 0.5f, 2, tvals, rs, cs, ss, iinds, os, np, nn);
+	learn_new_stage(0.9800f, 0.5f, 4, tvals, rs, cs, ss, iinds, os, np, nn);
 	save_cascade_to_file(dst);
 
 	printf("\n");
 
 	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9850f, 0.5f, 4, tvals, rs, cs, ss, iinds, os, np, nn);
+	learn_new_stage(0.9850f, 0.5f, 8, tvals, rs, cs, ss, iinds, os, np, nn);
 	save_cascade_to_file(dst);
 
 	printf("\n");
 
 	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9900f, 0.5f, 8, tvals, rs, cs, ss, iinds, os, np, nn);
+	learn_new_stage(0.9900f, 0.5f, 16, tvals, rs, cs, ss, iinds, os, np, nn);
 	save_cascade_to_file(dst);
 
 	printf("\n");
 
 	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9950f, 0.5f, 16, tvals, rs, cs, ss, iinds, os, np, nn);
+	learn_new_stage(0.9950f, 0.5f, 32, tvals, rs, cs, ss, iinds, os, np, nn);
 	save_cascade_to_file(dst);
 
 	printf("\n");
@@ -892,7 +892,7 @@ int learn_with_default_parameters(char* trdata, char* dst)
 	//
 	while(sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn) > 1e-6f)
 	{
-		learn_new_stage(0.9975f, 0.5f, 32, tvals, rs, cs, ss, iinds, os, np, nn);
+		learn_new_stage(0.9975f, 0.5f, 64, tvals, rs, cs, ss, iinds, os, np, nn);
 		save_cascade_to_file(dst);
 
 		printf("\n");
