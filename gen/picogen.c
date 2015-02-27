@@ -28,15 +28,14 @@
 	
 */
 
-
 float tsr, tsc;
 int tdepth;
 int ntrees=0;
 
-int32_t tcodes[1024][1024];
-float luts[1024][1024];
+int32_t tcodes[4096][1024];
+float luts[4096][1024];
 
-float thresholds[1024];
+float thresholds[4096];
 
 /*
 	
@@ -122,7 +121,7 @@ void print_c_code(const char* name, float rotation)
 
 	int qsin, qcos, q;
 
-	static int16_t rtcodes[1024][1024][4];
+	static int16_t rtcodes[4096][1024][4];
 
 	// generate rotated binary tests
 	q = (1<<16);
@@ -155,7 +154,7 @@ void print_c_code(const char* name, float rotation)
 	printf("{\n");
 
 	//
-	printf("	int i, j, idx, sr, sc;\n");
+	printf("	int i, idx, sr, sc;\n");
 	printf("	uint8_t* pixels;\n");
 
 	//
@@ -236,23 +235,25 @@ void print_c_code(const char* name, float rotation)
 
 int main(int argc, char* argv[])
 {
-	float rotation;
-
 	//
-	if(argc!=4)
+	if(argc == 3)
+	{
+		load_cascade(argv[1]);
+		print_c_code(argv[2], 0.0f);
+	}
+	else if(argc == 4)
+	{
+		float rotation;
+
+		load_cascade(argv[1]);
+		sscanf(argv[2], "%f", &rotation);
+		print_c_code(argv[3], rotation);
+	}
+	else
 	{
 		printf("* specify arguments: <cascade> <in-plane rotation> <detection function name>\n");
 		return 0;
 	}
-
-	//
-	load_cascade(argv[1]);
-
-	//
-	sscanf(argv[2], "%f", &rotation);
-
-	//
-	print_c_code(argv[3], rotation);
 
 	//
 	return 0;
