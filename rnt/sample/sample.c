@@ -72,11 +72,12 @@ float getticks()
 	
 */
 
-int minsize = 100;
+int minsize = 128;
+int maxsize = 1024;
 
 void process_image(IplImage* frame, int draw, int print)
 {
-	int i;
+	int i, j;
 	float t;
 
 	uint8_t* pixels;
@@ -87,6 +88,7 @@ void process_image(IplImage* frame, int draw, int print)
 	float qs[MAXNDETECTIONS], rs[MAXNDETECTIONS], cs[MAXNDETECTIONS], ss[MAXNDETECTIONS];
 
 	static IplImage* gray = 0;
+	static IplImage* pyr[5] = {0, 0, 0, 0, 0};
 
 	/*
 		IMPORTANT:
@@ -113,28 +115,87 @@ void process_image(IplImage* frame, int draw, int print)
 	// * for example, set to 0.05f if you want really high recall
 	float stridefactor = 0.1f;
 
+	// * coarse image pyramid support
+	// * can improve noise and aliasing problems in some applications
+	// * set to 1 if pico fails to detect large objects
+	int usepyr = 0;
+
 	/*
 		...
 	*/
 
-	// grayscale image
-	if(!gray)
+	//
+	if(!pyr[0])
+	{
+		//
 		gray = cvCreateImage(cvSize(frame->width, frame->height), frame->depth, 1);
+
+		//
+		pyr[0] = gray;
+		pyr[1] = cvCreateImage(cvSize(frame->width/2, frame->height/2), frame->depth, 1);
+		pyr[2] = cvCreateImage(cvSize(frame->width/4, frame->height/4), frame->depth, 1);
+		pyr[3] = cvCreateImage(cvSize(frame->width/8, frame->height/8), frame->depth, 1);
+		pyr[4] = cvCreateImage(cvSize(frame->width/16, frame->height/16), frame->depth, 1);
+	}
+
+	// get grayscale image
 	if(frame->nChannels == 3)
 		cvCvtColor(frame, gray, CV_RGB2GRAY);
 	else
 		cvCopy(frame, gray, 0);
 
-	// get relevant image data
-	pixels = (uint8_t*)gray->imageData;
-	nrows = gray->height;
-	ncols = gray->width;
-	ldim = gray->widthStep;
-
 	// perform detection with the pico library
 	t = getticks();
-	ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
+
+	if(usepyr)
+	{
+		int nd;
+
+		//
+		pyr[0] = gray;
+
+		pixels = (uint8_t*)pyr[0]->imageData;
+		nrows = pyr[0]->height;
+		ncols = pyr[0]->width;
+		ldim = pyr[0]->widthStep;
+
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
+
+		for(i=1; i<5; ++i)
+		{
+			cvResize(pyr[i-1], pyr[i], CV_INTER_LINEAR);
+
+			pixels = (uint8_t*)pyr[i]->imageData;
+			nrows = pyr[i]->height;
+			ncols = pyr[i]->width;
+			ldim = pyr[i]->widthStep;
+
+			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
+
+			for(j=ndetections; j<ndetections+nd; ++j)
+			{
+				rs[j] = (1<<i)*rs[j];
+				cs[j] = (1<<i)*cs[j];
+				ss[j] = (1<<i)*ss[j];
+			}
+
+			ndetections = ndetections + nd;
+		}
+	}
+	else
+	{
+		// get relevant image data
+		pixels = (uint8_t*)gray->imageData;
+		nrows = gray->height;
+		ncols = gray->width;
+		ldim = gray->widthStep;
+
+		//
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
+	}
+
 	ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
+
 	t = getticks() - t;
 
 	// if the flag is set, draw each detection
