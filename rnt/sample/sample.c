@@ -38,11 +38,7 @@ float getticks()
 	struct timespec ts;
 
 	if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
-	{
-		printf("clock_gettime error\n");
-
 		return -1.0f;
-	}
 
 	return ts.tv_sec + 1e-9f*ts.tv_nsec;
 }
