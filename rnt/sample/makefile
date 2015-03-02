@@ -12,4 +12,4 @@ output:
 	#
 	# Compiling face detection sample ...
 	#
-	$(CC) sample.c ../picornt.c -lm -lrt $(OPENCV) -O3 -o pico
+	$(CC) sample.c ../picornt.c -lrt $(OPENCV) -O3 -o pico

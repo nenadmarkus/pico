@@ -184,7 +184,7 @@ void process_image(IplImage* frame, int draw, int print)
 	}
 	else
 	{
-		// get relevant image data
+		//
 		pixels = (uint8_t*)gray->imageData;
 		nrows = gray->height;
 		ncols = gray->width;
