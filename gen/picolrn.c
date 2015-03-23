@@ -949,10 +949,16 @@ int main(int argc, char* argv[])
 
 		//
 		if(!load_cascade_from_file(argv[1]))
+		{
+			printf("* cannot load a cascade from '%s'\n", argv[1]);
 			return 1;
+		}
 
 		if(!load_training_data(argv[2]))
+		{
+			printf("* cannot load the training data from '%s'\n", argv[2]);
 			return 1;
+		}
 
 		//
 		sscanf(argv[3], "%f", &tpr);
