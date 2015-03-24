@@ -694,7 +694,6 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 	int64_t nw;
 	float etpr, efpr;
 
-
 	int t;
 
 	#define NUMPRNGS 1024
