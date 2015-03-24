@@ -752,65 +752,70 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 
 	stop = 0;
 
-	#pragma omp parallel
+	if(nbackground)
 	{
-		int thid;
-
-		//
-		thid = omp_get_thread_num();
-
-		while(!stop)
+		#pragma omp parallel
 		{
-			/*
-				data mine hard negatives
-			*/
-
-			float o;
-			int iind, s, r, c, nrows, ncols;
-			uint8_t* pixels;
+			int thid;
 
 			//
-			iind = background[ mwcrand_r(&prngs[thid])%nbackground ];
+			thid = omp_get_thread_num();
 
-			//
-			r = mwcrand_r(&prngs[thid])%pdims[iind][0];
-			c = mwcrand_r(&prngs[thid])%pdims[iind][1];
-			s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
-
-			//
-			if( classify_region(&o, r, c, s, iind) == 1 )
+			while(!stop)
 			{
-				//we have a false positive ...
-				#pragma omp critical
+				/*
+					data mine hard negatives
+				*/
+
+				float o;
+				int iind, s, r, c, nrows, ncols;
+				uint8_t* pixels;
+
+				//
+				iind = background[ mwcrand_r(&prngs[thid])%nbackground ];
+
+				//
+				r = mwcrand_r(&prngs[thid])%pdims[iind][0];
+				c = mwcrand_r(&prngs[thid])%pdims[iind][1];
+				s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
+
+				//
+				if( classify_region(&o, r, c, s, iind) == 1 )
 				{
-					if(*nn<*np)
+					//we have a false positive ...
+					#pragma omp critical
 					{
-						rs[n] = r;
-						cs[n] = c;
-						ss[n] = s;
+						if(*nn<*np)
+						{
+							rs[n] = r;
+							cs[n] = c;
+							ss[n] = s;
 
-						iinds[n] = iind;
+							iinds[n] = iind;
 
-						os[n] = o;
+							os[n] = o;
 
-						tvals[n] = -1;
+							tvals[n] = -1;
 
-						//
-						++n;
-						++*nn;
+							//
+							++n;
+							++*nn;
+						}
+						else
+							stop = 1;
 					}
-					else
-						stop = 1;
 				}
-			}
 
-			if(!stop)
-			{
-				#pragma omp atomic
-				++nw;
+				if(!stop)
+				{
+					#pragma omp atomic
+					++nw;
+				}
 			}
 		}
 	}
+	else
+		nw = 1;
 
 	/*
 		print the estimated true positive and false positive rates
