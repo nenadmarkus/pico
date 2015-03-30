@@ -949,7 +949,7 @@ int main(int argc, char* argv[])
 	else if(argc == 7)
 	{
 		float tpr, fpr;
-		int n, np, nn;
+		int ntrees, np, nn;
 
 		//
 		if(!load_cascade_from_file(argv[1]))
@@ -967,11 +967,11 @@ int main(int argc, char* argv[])
 		//
 		sscanf(argv[3], "%f", &tpr);
 		sscanf(argv[4], "%f", &fpr);
-		sscanf(argv[5], "%d", &n);
+		sscanf(argv[5], "%d", &ntrees);
 
 		//
 		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-		learn_new_stage(tpr, fpr, n, tvals, rs, cs, ss, iinds, os, np, nn);
+		learn_new_stage(tpr, fpr, ntrees, tvals, rs, cs, ss, iinds, os, np, nn);
 
 		//
 		if(!save_cascade_to_file(argv[6]))
