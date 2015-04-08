@@ -177,7 +177,7 @@ int load_training_data(char* path)
 
 		//
 		if(fread(&n, sizeof(int), 1, file) != 1)
-			return 0;
+			return 1;
 
 		if(!n)
 		{
