@@ -197,9 +197,13 @@ void print_c_code(const char* name, float rotation)
 	printf("	sr = (int)(%ff*s);\n", tsr);
 	printf("	sc = (int)(%ff*s);\n", tsc);
 
+	printf("\n");
+	printf("	r = r*256;\n");
+	printf("	c = c*256;\n");
+
 	// generate the code that checks image boundaries
 	printf("\n");
-	printf("	if( (256*r+%d*sr)/256>=nrows || (256*r-%d*sr)/256<0 || (256*c+%d*sc)/256>=ncols || (256*c-%d*sc)/256<0 )\n", maxr, maxr, maxc, maxc);
+	printf("	if( (r+%d*sr)/256>=nrows || (r-%d*sr)/256<0 || (c+%d*sc)/256>=ncols || (c-%d*sc)/256<0 )\n", maxr, maxr, maxc, maxc);
 	printf("		return -1;\n");
 
 	printf("\n");
@@ -214,7 +218,7 @@ void print_c_code(const char* name, float rotation)
 	printf("		idx = 1;\n");
 	for(i=0; i<tdepth; ++i)
 	{
-		printf("		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);\n");
+		printf("		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);\n");
 		///printf("		idx = 2*idx + (pixels[tcodes[i][idx][0]*sr/256*ldim + tcodes[i][idx][1]*sc/256]<=pixels[tcodes[i][idx][2]*sr/256*ldim + tcodes[i][idx][3]*sc/256]);\n");
 	}
 	printf("\n		*o = *o + lut[i][idx-%d];\n\n", 1<<tdepth);

@@ -955,7 +955,10 @@ int run_facefinder(float* o, int r, int c, int s, void* vppixels, int nrows, int
 	sr = (int)(1.000000f*s);
 	sc = (int)(1.000000f*s);
 
-	if( (256*r+128*sr)/256>=nrows || (256*r-128*sr)/256<0 || (256*c+128*sc)/256>=ncols || (256*c-128*sc)/256<0 )
+	r = r*256;
+	c = c*256;
+
+	if( (r+128*sr)/256>=nrows || (r-128*sr)/256<0 || (c+128*sc)/256>=ncols || (c-128*sc)/256<0 )
 		return -1;
 
 	pixels = (uint8_t*)vppixels;
@@ -965,12 +968,12 @@ int run_facefinder(float* o, int r, int c, int s, void* vppixels, int nrows, int
 	for(i=0; i<468; ++i)
 	{
 		idx = 1;
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
-		idx = 2*idx + (pixels[(256*r+tcodes[i][idx][0]*sr)/256*ldim + (256*c+tcodes[i][idx][1]*sc)/256]<=pixels[(256*r+tcodes[i][idx][2]*sr)/256*ldim + (256*c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
+		idx = 2*idx + (pixels[(r+tcodes[i][idx][0]*sr)/256*ldim + (c+tcodes[i][idx][1]*sc)/256]<=pixels[(r+tcodes[i][idx][2]*sr)/256*ldim + (c+tcodes[i][idx][3]*sc)/256]);
 
 		*o = *o + lut[i][idx-64];
 
