@@ -2,7 +2,7 @@ This tutorial will guide you through the process of learning your own face detec
 
 ## 1. Get images with annotated faces:
 
-* Download the GENKI dataset from <http://mplab.ucsd.edu/~nick/GENKI-R2009a.tgz>
+* Download the GENKI dataset from <http://mplab.ucsd.edu/~nick/GENKI-R2009a.tgz> (or from <https://docs.google.com/uc?export=download&confirm=cx-l&id=0Bw4IT5ZOzJj6bm5scnhQWlltaUE>, if the original link is not working)
 * Extract the contents of the archive to some folder: `path/to/genki`
 
 ## 2. Get images that do not contain faces (background):
