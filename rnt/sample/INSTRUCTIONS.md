@@ -28,9 +28,13 @@ This will run the detector with *default parameters* on video stream obtained fr
 * `-c` or `--scalefactor` followed by a real number: how much to rescale the window during the multiscale detection process (defauls is 1.1); increasing this value leads to lower number of detections and higher processing speed; for example, set to 1.2 if you're using pico on a mobile device.
 * `-t` or `--stridefactor` followed by a real number: how much to move the window between neighboring detections (default is 0.1, i.e., 10%): increasing this value leads to lower number of detections and higher processing speed; for example, set to 0.05 if you want really high recall.
 * `-u` or `--usepyr`: turns on the coarse image pyramid support; can improve noise and aliasing problems in some applications; set to 1 if pico fails to detect large objects.
-* `-n` or `--noclustering`: turns off detection clustering; useful mainly for "debugging" of failure cases.
+* `-n` or `--noclustering`: turns off detection clustering; useful mainly for "debugging" failure cases.
 * `-v` or `--verbose`: print details of the detection process to `stdout`.
 
 An example:
 
 	$ ./pico ../cascades/facefinder -m 100 --usepyr
+
+Compare to the following options:
+
+	$ ./pico ../cascades/facefinder -m 100 --usepyr -n -q 0.0

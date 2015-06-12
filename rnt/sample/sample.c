@@ -412,6 +412,20 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 		}
+		else if(0==strcmp("-q", argv[arg]) || 0==strcmp("--qthreshold", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%f", &qthreshold);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
 		else if(0==strcmp("-n", argv[arg]) || 0==strcmp("--noclustering", argv[arg]))
 		{
 			noclustering = 1;
