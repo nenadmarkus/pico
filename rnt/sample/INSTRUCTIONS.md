@@ -14,7 +14,7 @@ Thus, if you wish to redistribute it or its modifications in binary form, you ha
 
 You always have to specify a path to the detection cascade as the first command line argument, like this:
 
-	$ ./pico path/to/cascade
+	$ ./pico ../cascades/facefinder
 
 This will run the detector with *default parameters* on video stream obtained from a *webcam* attached to the computer.
 
