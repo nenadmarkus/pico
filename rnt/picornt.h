@@ -23,10 +23,12 @@
 	
 */
 
+int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, int nrows, int ncols, int ldim);
+
 int find_objects
 		(
 			float rs[], float cs[], float ss[], float qs[], int maxndetections,
-			int (*run_detection_cascade)(float*, int, int, int, void*, int, int, int),
+			int (*run_cascade)(void*, float*, int, int, int, void*, int, int, int), void* params,
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
 		);

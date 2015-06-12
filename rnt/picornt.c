@@ -20,14 +20,87 @@
 #define MAX(a, b) ((a)>(b)?(a):(b))
 #define MIN(a, b) ((a)<(b)?(a):(b))
 
+#include <stdint.h>
+
 /*
 	
 */
-#include <stdio.h>
+
+int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, int nrows, int ncols, int ldim)
+{
+	//
+	int i, j, idx;
+
+	uint8_t* pixels;
+
+	float tsr, tsc;
+	int tdepth, ntrees;
+
+	int offset, sr, sc;
+
+	int8_t* ptree;
+	int8_t* tcodes;
+	float* lut;
+	float thr;
+
+	//
+	pixels = (uint8_t*)vppixels;
+
+	//
+	tsr = ((float*)cascade)[0];
+	tsc = ((float*)cascade)[1];
+
+	tdepth = ((int*)cascade)[2];
+	ntrees = ((int*)cascade)[3];
+
+	//
+	sr = (int)(s*tsr);
+	sc = (int)(s*tsc);
+
+	r = r*256;
+	c = c*256;
+
+	if( (r+128*sr)/256>=nrows || (r-128*sr)/256<0 || (c+128*sc)/256>=ncols || (c-128*sc)/256<0 )
+		return -1;
+
+	//
+	offset = ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*sizeof(float) + 1*sizeof(float);
+	ptree = (int8_t*)cascade + 2*sizeof(float) + 2*sizeof(int);
+
+	*o = 0.0f;
+
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		tcodes = ptree - 4;
+		lut = (float*)(ptree + ((1<<tdepth)-1)*sizeof(int32_t));
+		thr = *(float*)(ptree + ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*sizeof(float));
+
+		//
+		idx = 1;
+
+		for(j=0; j<tdepth; ++j)
+			idx = 2*idx + (pixels[(r+tcodes[4*idx+0]*sr)/256*ldim+(c+tcodes[4*idx+1]*sc)/256]<=pixels[(r+tcodes[4*idx+2]*sr)/256*ldim+(c+tcodes[4*idx+3]*sc)/256]);
+
+		*o = *o + lut[idx-64];
+
+		//
+		if(*o<=thr)
+			return -1;
+		else
+			ptree = ptree + offset;
+	}
+
+	//
+	*o = *o - thr;
+
+	return +1;
+}
+
 int find_objects
 		(
 			float rs[], float cs[], float ss[], float qs[], int maxndetections,
-			int (*run_detection_cascade)(float*, int, int, int, void*, int, int, int),
+			int (*run_cascade)(void*, float*, int, int, int, void*, int, int, int), void* params,
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
 		)
@@ -53,7 +126,7 @@ int find_objects
 				float q;
 				int t;
 
-				if(run_detection_cascade(&q, r, c, s, pixels, nrows, ncols, ldim) == 1)
+				if(run_cascade(params, &q, r, c, s, pixels, nrows, ncols, ldim) == 1)
 				{
 					if(ndetections < maxndetections)
 					{

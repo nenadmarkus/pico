@@ -25,10 +25,8 @@
 //
 #include "../picornt.h"
 
-#include "facefinder.c"
-
 /*
-	portable time function
+	a portable time function
 */
 
 #ifdef __GNUC__
@@ -68,10 +66,22 @@ float getticks()
 	
 */
 
-int minsize = 128;
-int maxsize = 1024;
+void* cascade = 0;
+int (*run)(void*, float*, int, int, int, void*, int, int, int) = 0;
 
-void process_image(IplImage* frame, int draw, int print)
+int minsize;
+int maxsize;
+
+float scalefactor;
+float stridefactor;
+
+float qthreshold;
+
+int usepyr;
+int noclustering;
+int verbose;
+
+void process_image(IplImage* frame, int draw)
 {
 	int i, j;
 	float t;
@@ -85,36 +95,6 @@ void process_image(IplImage* frame, int draw, int print)
 
 	static IplImage* gray = 0;
 	static IplImage* pyr[5] = {0, 0, 0, 0, 0};
-
-	/*
-		IMPORTANT:
-			* these parameters are highly specific for each detection cascade
-			  (determine them experimentally)
-	*/
-
-	// * this function should be generated with picogen from a detection cascade output by picolrn
-	int (*run_detection_cascade)(float*, int, int, int, void*, int, int, int)
-		= run_facefinder;
-
-	// * detection quality threshold (must be >= 0.0f)
-	// * you can vary the TPR and FPR with this value
-	// * if you're experiencing too many false positives, try a larger number here (for example, 7.5f) 
-	float qthreshold = 5.0f;
-
-	// * how much to rescale the window during the multiscale detection process
-	// * increasing this value leads to lower number of detections and higher processing speed
-	// * for example, set to 1.2f if you're using pico on a mobile device
-	float scalefactor = 1.1f;
-
-	// * how much to move the window between neighboring detections
-	// * increasing this value leads to lower number of detections and higher processing speed
-	// * for example, set to 0.05f if you want really high recall
-	float stridefactor = 0.1f;
-
-	// * coarse image pyramid support
-	// * can improve noise and aliasing problems in some applications
-	// * set to 1 if pico fails to detect large objects
-	int usepyr = 0;
 
 	/*
 		...
@@ -155,7 +135,7 @@ void process_image(IplImage* frame, int draw, int print)
 		ncols = pyr[0]->width;
 		ldim = pyr[0]->widthStep;
 
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
 
 		for(i=1; i<5; ++i)
 		{
@@ -166,7 +146,7 @@ void process_image(IplImage* frame, int draw, int print)
 			ncols = pyr[i]->width;
 			ldim = pyr[i]->widthStep;
 
-			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
+			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
 
 			for(j=ndetections; j<ndetections+nd; ++j)
 			{
@@ -187,10 +167,11 @@ void process_image(IplImage* frame, int draw, int print)
 		ldim = gray->widthStep;
 
 		//
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run_detection_cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
 	}
 
-	ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
+	if(!noclustering)
+		ndetections = cluster_detections(rs, cs, ss, qs, ndetections);
 
 	t = getticks() - t;
 
@@ -200,8 +181,8 @@ void process_image(IplImage* frame, int draw, int print)
 			if(qs[i]>=qthreshold) // check the confidence threshold
 				cvCircle(frame, cvPoint(cs[i], rs[i]), ss[i]/2, CV_RGB(255, 0, 0), 4, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 
-	// if the flag is set, print the results to standard output
-	if(print)
+	// if the `verbose` flag is set, print the results to standard output
+	if(verbose)
 	{
 		//
 		for(i=0; i<ndetections; ++i)
@@ -266,7 +247,7 @@ void process_webcam_frames()
 			cvFlip(framecopy, framecopy, 1);
 
 			// ...
-			process_image(framecopy, 1, 0);
+			process_image(framecopy, 1);
 
 			// ...
 			cvShowImage(windowname, framecopy);
@@ -281,60 +262,212 @@ void process_webcam_frames()
 
 int main(int argc, char* argv[])
 {
-	IplImage* img = 0;
+	//
+	int arg;
+	char input[1024], output[1024];
 
-	if(argc==1)
+	//
+	if(argc < 2)
 	{
-		printf("Copyright (c) 2013, Nenad Markus\n");
-		printf("All rights reserved.\n\n");
-
-		process_webcam_frames();
-	}
-	else if(argc==2)
-	{
-		printf("Copyright (c) 2013, Nenad Markus\n");
-		printf("All rights reserved.\n\n");
-
-		sscanf(argv[1], "%d", &minsize);
-
-		process_webcam_frames();
-	}
-	else if(argc==3)
-	{
-		sscanf(argv[1], "%d", &minsize);
-
-		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
-		if(!img)
-		{
-			printf("* cannot load image!\n");
-			return 1;
-		}
-
-		process_image(img, 0, 1);
-
-		cvReleaseImage(&img);
-	}
-	else if(argc==4)
-	{
-		sscanf(argv[1], "%d", &minsize);
-
-		img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR);
-		if(!img)
-		{
-			printf("* cannot load image!\n");
-			return 1;
-		}
-
-		process_image(img, 1, 0);
-
-		//
-		cvSaveImage(argv[3], img, 0);
-
-		//
-		cvReleaseImage(&img);
+		printf("# please specify a valid detection cascade path\n");
+		return 0;
 	}
 	else
-		return 1;
+	{
+		int size;
+		FILE* file;
+
+		//
+		file = fopen(argv[1], "rb");
+
+		if(!file)
+			return 0;
+
+		//
+		fseek(file, 0L, SEEK_END);
+		size = ftell(file);
+		fseek(file, 0L, SEEK_SET);
+
+		//
+		cascade = malloc(size);
+
+		if(!cascade || size!=fread(cascade, 1, size, file))
+			return 0;
+
+		//
+		fclose(file);
+	}
+
+	// set default parameters
+	run = run_cascade;
+
+	minsize = 128;
+	maxsize = 1024;
+
+	scalefactor = 1.1f;
+	stridefactor = 0.1f;
+
+	qthreshold = 5.0f;
+
+	usepyr = 0;
+	noclustering = 0;
+	verbose = 0;
+
+	//
+	input[0] = 0;
+	output[0] = 0;
+
+	// parse command line arguments
+	arg = 2;
+
+	while(arg < argc)
+	{
+		//
+		if(0==strcmp("-u", argv[arg]) || 0==strcmp("--usepyr", argv[arg]))
+		{
+			usepyr = 1;
+			++arg;
+		}
+		else if(0==strcmp("-i", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%s", input);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-o", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%s", output);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-m", argv[arg]) || 0==strcmp("--minsize", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%d", &minsize);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-M", argv[arg]) || 0==strcmp("--maxsize", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%d", &maxsize);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-c", argv[arg]) || 0==strcmp("--scalefactor", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%f", &scalefactor);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-t", argv[arg]) || 0==strcmp("--stridefactor", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%f", &stridefactor);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 0;
+			}
+		}
+		else if(0==strcmp("-n", argv[arg]) || 0==strcmp("--noclustering", argv[arg]))
+		{
+			noclustering = 1;
+			++arg;
+		}
+		else if(0==strcmp("-v", argv[arg]) || 0==strcmp("--verbose", argv[arg]))
+		{
+			verbose = 1;
+			++arg;
+		}
+		else
+		{
+			printf("# invalid command line argument '%s'\n", argv[arg]);
+			return 0;
+		}
+	}
+
+	//
+	printf("# Copyright (c) 2013, Nenad Markus\n");
+	printf("# All rights reserved.\n\n");
+
+	if(verbose)
+	{
+		printf("# detection parameters:\n");
+		printf("#	minsize = %d\n", minsize);
+		printf("#	maxsize = %d\n", maxsize);
+		printf("#	scalefactor = %f\n", scalefactor);
+		printf("#	stridefactor = %f\n", stridefactor);
+		printf("#	qthreshold = %f\n", qthreshold);
+		printf("#	usepyr = %d\n", usepyr);
+	}
+
+	//
+	if(0 == input[0])
+		process_webcam_frames();
+	else
+	{
+		IplImage* img;
+
+		//
+		img = cvLoadImage(input, CV_LOAD_IMAGE_COLOR);
+		if(!img)
+		{
+			printf("# cannot load image from '%s'\n", argv[3]);
+			return 0;
+		}
+
+		process_image(img, 1);
+
+		//
+		if(0!=output[0])
+			cvSaveImage(output, img, 0);
+
+		//
+		cvReleaseImage(&img);
+	}
 
 	return 0;
 }

@@ -1,4 +1,4 @@
-int run_facefinder(float* o, int r, int c, int s, void* vppixels, int nrows, int ncols, int ldim)
+int run_facefinder(void* params, float* o, int r, int c, int s, void* vppixels, int nrows, int ncols, int ldim)
 {
 	int i, idx, sr, sc;
 	uint8_t* pixels;
