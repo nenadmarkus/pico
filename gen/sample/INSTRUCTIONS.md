@@ -30,6 +30,6 @@ After the learning is finished (~2 days on a modern machine with 4 CPU cores), y
 
 ## 5. Try the new face detector:
 
-* Use `picogen.c` to transform the detection cascade into highly optimized C code: `./picogen d 0.0 run_facefinder > facefinder_genki.c`
-* Modify `sample.c`: replace `#include "facefinder.c"` with `#include "facefinder_genki.c"`
-* Compile and run the program
+Move the detector to folder `rnt/sample/` and execute the following command:
+
+	$ ./pico d
