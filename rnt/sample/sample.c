@@ -190,7 +190,7 @@ void process_image(IplImage* frame, int draw)
 				printf("%d %d %d %f\n", (int)rs[i], (int)cs[i], (int)ss[i], qs[i]);
 
 		//
-		printf("# %f\n", 1000.0f*t); // use '#' to ignore this line when parsing the output of the program
+		//printf("# %f\n", 1000.0f*t); // use '#' to ignore this line when parsing the output of the program
 	}
 }
 
@@ -443,12 +443,17 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	//
-	printf("# Copyright (c) 2013, Nenad Markus\n");
-	printf("# All rights reserved.\n\n");
-
 	if(verbose)
 	{
+		//
+		printf("# Copyright (c) 2013, Nenad Markus\n");
+		printf("# All rights reserved.\n\n");
+
+		printf("# cascade parameters:\n");
+		printf("#	tsr = %f\n", ((float*)cascade)[0]);
+		printf("#	tsc = %f\n", ((float*)cascade)[1]);
+		printf("#	tdepth = %d\n", ((int*)cascade)[2]);
+		printf("#	ntrees = %d\n", ((int*)cascade)[3]);
 		printf("# detection parameters:\n");
 		printf("#	minsize = %d\n", minsize);
 		printf("#	maxsize = %d\n", maxsize);

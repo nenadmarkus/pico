@@ -82,7 +82,7 @@ int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, in
 		for(j=0; j<tdepth; ++j)
 			idx = 2*idx + (pixels[(r+tcodes[4*idx+0]*sr)/256*ldim+(c+tcodes[4*idx+1]*sc)/256]<=pixels[(r+tcodes[4*idx+2]*sr)/256*ldim+(c+tcodes[4*idx+3]*sc)/256]);
 
-		*o = *o + lut[idx-64];
+		*o = *o + lut[idx-(1<<tdepth)];
 
 		//
 		if(*o<=thr)
