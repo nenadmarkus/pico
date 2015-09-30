@@ -186,7 +186,7 @@ int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, v
 int find_objects
 		(
 			float rs[], float cs[], float ss[], float qs[], int maxndetections,
-			void* cascade, float angle,
+			void* cascade, float angle, // * `angle` is a number between 0 and 1 that determines the counterclockwise in-plane rotation of the cascade: 0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
 		)
