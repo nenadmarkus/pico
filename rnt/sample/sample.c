@@ -266,9 +266,41 @@ int main(int argc, char* argv[])
 	char input[1024], output[1024];
 
 	//
-	if(argc < 2)
+	if(argc<2 || 0==strcmp("-h", argv[1]) || 0==strcmp("--help", argv[1]))
 	{
-		printf("# please specify a valid detection cascade path\n");
+		printf("Usage: pico <path/to/cascade> <options>...\n");
+		printf("Detect objects in images.\n");
+		printf("\n");
+
+		// command line options
+		printf("Mandatory arguments to long options are mandatory for short options too.\n");
+		printf("  -i,  --input=PATH          set the path to the input image\n");
+		printf("                               (*.jpg, *.png, etc.)\n");
+		printf("  -o,  --output=PATH         set the path to the output image\n");
+		printf("                               (*.jpg, *.png, etc.)\n");
+		printf("  -m,  --minsize=SIZE        sets the minimum size (in pixels) of an\n");
+		printf("                               object(default is 128)\n");
+		printf("  -M,  --maxsize=SIZE        sets the maximum size (in pixels) of an\n");
+		printf("                               object(default is 1024)\n");
+		printf("  -q,  --qthreshold=THRESH   detection quality threshold (>=0.0):\n");
+		printf("                               all detections with estimated quality\n");
+		printf("                               below this threshold will be discarded\n");
+		printf("                               (default is 5.0)\n");
+		printf("  -c,  --scalefactor=SCALE   how much to rescale the window during the\n");
+		printf("                               multiscale detection process (default is 1.1)\n");
+		printf("  -t,  --stridefactor=STRIDE how much to move the window between neighboring\n");
+		printf("                               detections (default is 0.1, i.e., 10%)\n");
+		printf("  -u,  --usepyr              turns on the coarse image pyramid support\n");
+		printf("  -n,  --noclustering        turns off detection clustering\n");
+		printf("  -v,  --verbose             print details of the detection process\n");
+		printf("                               to `stdout`\n");
+
+		//
+		printf("Exit status:\n");
+		printf(" 0 if OK,\n");
+		printf(" 1 if trouble (e.g., invalid path to input image).\n");
+
+		//
 		return 0;
 	}
 	else
@@ -280,7 +312,10 @@ int main(int argc, char* argv[])
 		file = fopen(argv[1], "rb");
 
 		if(!file)
-			return 0;
+		{
+			printf("# cannot read cascade from '%s'\n", argv[1]);
+			return 1;
+		}
 
 		//
 		fseek(file, 0L, SEEK_END);
@@ -291,7 +326,7 @@ int main(int argc, char* argv[])
 		cascade = malloc(size);
 
 		if(!cascade || size!=fread(cascade, 1, size, file))
-			return 0;
+			return 1;
 
 		//
 		fclose(file);
@@ -325,7 +360,7 @@ int main(int argc, char* argv[])
 			usepyr = 1;
 			++arg;
 		}
-		else if(0==strcmp("-i", argv[arg]))
+		else if(0==strcmp("-i", argv[arg]) || 0==strcmp("--input", argv[arg]))
 		{
 			if(arg+1 < argc)
 			{
@@ -336,10 +371,10 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
-		else if(0==strcmp("-o", argv[arg]))
+		else if(0==strcmp("-o", argv[arg]) || 0==strcmp("--output", argv[arg]))
 		{
 			if(arg+1 < argc)
 			{
@@ -350,7 +385,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-m", argv[arg]) || 0==strcmp("--minsize", argv[arg]))
@@ -364,7 +399,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-M", argv[arg]) || 0==strcmp("--maxsize", argv[arg]))
@@ -378,7 +413,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-c", argv[arg]) || 0==strcmp("--scalefactor", argv[arg]))
@@ -392,7 +427,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-t", argv[arg]) || 0==strcmp("--stridefactor", argv[arg]))
@@ -406,7 +441,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-q", argv[arg]) || 0==strcmp("--qthreshold", argv[arg]))
@@ -420,7 +455,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				printf("# missing argument after '%s'\n", argv[arg]);
-				return 0;
+				return 1;
 			}
 		}
 		else if(0==strcmp("-n", argv[arg]) || 0==strcmp("--noclustering", argv[arg]))
@@ -436,7 +471,7 @@ int main(int argc, char* argv[])
 		else
 		{
 			printf("# invalid command line argument '%s'\n", argv[arg]);
-			return 0;
+			return 1;
 		}
 	}
 
@@ -472,7 +507,7 @@ int main(int argc, char* argv[])
 		if(!img)
 		{
 			printf("# cannot load image from '%s'\n", argv[3]);
-			return 0;
+			return 1;
 		}
 
 		process_image(img, 1);
@@ -480,6 +515,11 @@ int main(int argc, char* argv[])
 		//
 		if(0!=output[0])
 			cvSaveImage(output, img, 0);
+		else if(!verbose)
+		{
+			cvShowImage(input, img);
+			cvWaitKey(0);
+		}
 
 		//
 		cvReleaseImage(&img);
