@@ -24,7 +24,7 @@
 */
 
 
-// * `angle` is a number between 0 and 1 that determines the in-plane rotation of the cascade:
+// * `angle` is a number between 0 and 1 that determines the counterclockwise in-plane rotation of the cascade:
 //		0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
 
 int find_objects
