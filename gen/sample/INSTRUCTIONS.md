@@ -18,6 +18,8 @@ The negative training samples are data mined from these images during the traini
 * Prepare positive training samples: `python genki.py path/to/genki > trdata`
 * Prepare background images: `python background.py path/to/background >> trdata`
 
+(Important: both scripts are written in Python 3!)
+
 The file `trdata` can now be processed with `picolrn`.
 
 ## 4. Start the training process
