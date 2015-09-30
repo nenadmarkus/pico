@@ -32,8 +32,6 @@ Specifically, a sample application that performs face detection can be found in 
 
 Note that the library also enables the detection of rotated objects without the need of image resampling or classification cascade retraining.
 This is achieved by rotating the binary tests in internal tree nodes, as described in the paper.
-These "rotated" classifiers are created by passing the rotation angle (in radians) to `picogen.c`.
-More details can be found in the folder **gen/**.
 
 ### Embedding the runtime within your application
 
