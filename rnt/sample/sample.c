@@ -67,7 +67,6 @@ float getticks()
 */
 
 void* cascade = 0;
-int (*run)(void*, float*, int, int, int, void*, int, int, int) = 0;
 
 int minsize;
 int maxsize;
@@ -135,7 +134,7 @@ void process_image(IplImage* frame, int draw)
 		ncols = pyr[0]->width;
 		ldim = pyr[0]->widthStep;
 
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
 
 		for(i=1; i<5; ++i)
 		{
@@ -146,7 +145,7 @@ void process_image(IplImage* frame, int draw)
 			ncols = pyr[i]->width;
 			ldim = pyr[i]->widthStep;
 
-			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
+			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
 
 			for(j=ndetections; j<ndetections+nd; ++j)
 			{
@@ -167,7 +166,7 @@ void process_image(IplImage* frame, int draw)
 		ldim = gray->widthStep;
 
 		//
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, run, cascade, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
 	}
 
 	if(!noclustering)
@@ -299,8 +298,6 @@ int main(int argc, char* argv[])
 	}
 
 	// set default parameters
-	run = run_cascade;
-
 	minsize = 128;
 	maxsize = 1024;
 

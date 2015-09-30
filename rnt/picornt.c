@@ -97,10 +97,96 @@ int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, in
 	return +1;
 }
 
+int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, void* vppixels, int nrows, int ncols, int ldim)
+{
+	//
+	int i, j, idx;
+
+	uint8_t* pixels;
+
+	float tsr, tsc;
+	int tdepth, ntrees;
+
+	int offset, sr, sc;
+
+	int8_t* ptree;
+	int8_t* tcodes;
+	float* lut;
+	float thr;
+
+	static int qcostable[32+1] = {256, 251, 236, 212, 181, 142, 97, 49, 0, -49, -97, -142, -181, -212, -236, -251, -256, -251, -236, -212, -181, -142, -97, -49, 0, 49, 97, 142, 181, 212, 236, 251, 256};
+	static int qsintable[32+1] = {0, 49, 97, 142, 181, 212, 236, 251, 256, 251, 236, 212, 181, 142, 97, 49, 0, -49, -97, -142, -181, -212, -236, -251, -256, -251, -236, -212, -181, -142, -97, -49, 0};
+
+	//
+	pixels = (uint8_t*)vppixels;
+
+	//
+	tsr = ((float*)cascade)[0];
+	tsc = ((float*)cascade)[1];
+
+	tdepth = ((int*)cascade)[2];
+	ntrees = ((int*)cascade)[3];
+
+	//
+	r = r*65536;
+	c = c*65536;
+
+	if( (r+46341*s)/65536>=nrows || (r-46341*s)/65536<0 || (c+46341*s)/65536>=ncols || (c-46341*s)/65536<0 )
+		return -1;
+
+	//
+	offset = ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*sizeof(float) + 1*sizeof(float);
+	ptree = (int8_t*)cascade + 2*sizeof(float) + 2*sizeof(int);
+
+	*o = 0.0f;
+
+	int qsin = s*qsintable[(int)(32*a)]; //s*(int)(256.0f*sinf(2*M_PI*a));
+	int qcos = s*qcostable[(int)(32*a)]; //s*(int)(256.0f*cosf(2*M_PI*a));
+
+	for(i=0; i<ntrees; ++i)
+	{
+		//
+		tcodes = ptree - 4;
+		lut = (float*)(ptree + ((1<<tdepth)-1)*sizeof(int32_t));
+		thr = *(float*)(ptree + ((1<<tdepth)-1)*sizeof(int32_t) + (1<<tdepth)*sizeof(float));
+
+		//
+		idx = 1;
+
+		for(j=0; j<tdepth; ++j)
+		{
+			int r1, c1, r2, c2;
+
+			//
+			r1 = (r + qcos*tcodes[4*idx+0] - qsin*tcodes[4*idx+1])/65536;
+			c1 = (c + qsin*tcodes[4*idx+0] + qcos*tcodes[4*idx+1])/65536;
+
+			r2 = (r + qcos*tcodes[4*idx+2] - qsin*tcodes[4*idx+3])/65536;
+			c2 = (c + qsin*tcodes[4*idx+2] + qcos*tcodes[4*idx+3])/65536;
+
+			//
+			idx = 2*idx + (pixels[r1*ldim+c1]<=pixels[r2*ldim+c2]);
+		}
+
+		*o = *o + lut[idx-(1<<tdepth)];
+
+		//
+		if(*o<=thr)
+			return -1;
+		else
+			ptree = ptree + offset;
+	}
+
+	//
+	*o = *o - thr;
+
+	return +1;
+}
+
 int find_objects
 		(
 			float rs[], float cs[], float ss[], float qs[], int maxndetections,
-			int (*run_cascade)(void*, float*, int, int, int, void*, int, int, int), void* params,
+			void* cascade, float angle,
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
 		)
@@ -126,7 +212,12 @@ int find_objects
 				float q;
 				int t;
 
-				if(run_cascade(params, &q, r, c, s, pixels, nrows, ncols, ldim) == 1)
+				if(0.0f==angle)
+					t = run_cascade(cascade, &q, r, c, s, pixels, nrows, ncols, ldim);
+				else
+					t = run_rotated_cascade(cascade, &q, r, c, s, angle, pixels, nrows, ncols, ldim);
+
+				if(1==t)
 				{
 					if(ndetections < maxndetections)
 					{
