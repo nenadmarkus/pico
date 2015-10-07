@@ -71,6 +71,8 @@ void* cascade = 0;
 int minsize;
 int maxsize;
 
+float angle;
+
 float scalefactor;
 float stridefactor;
 
@@ -134,7 +136,7 @@ void process_image(IplImage* frame, int draw)
 		ncols = pyr[0]->width;
 		ldim = pyr[0]->widthStep;
 
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, angle, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(16, minsize), MIN(128, maxsize));
 
 		for(i=1; i<5; ++i)
 		{
@@ -145,7 +147,7 @@ void process_image(IplImage* frame, int draw)
 			ncols = pyr[i]->width;
 			ldim = pyr[i]->widthStep;
 
-			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
+			nd = find_objects(&rs[ndetections], &cs[ndetections], &ss[ndetections], &qs[ndetections], MAXNDETECTIONS-ndetections, cascade, angle, pixels, nrows, ncols, ldim, scalefactor, stridefactor, MAX(64, minsize>>i), MIN(128, maxsize>>i));
 
 			for(j=ndetections; j<ndetections+nd; ++j)
 			{
@@ -166,7 +168,7 @@ void process_image(IplImage* frame, int draw)
 		ldim = gray->widthStep;
 
 		//
-		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, 0.0f, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
+		ndetections = find_objects(rs, cs, ss, qs, MAXNDETECTIONS, cascade, angle, pixels, nrows, ncols, ldim, scalefactor, stridefactor, minsize, MIN(nrows, ncols));
 	}
 
 	if(!noclustering)
@@ -279,9 +281,12 @@ int main(int argc, char* argv[])
 		printf("  -o,  --output=PATH         set the path to the output image\n");
 		printf("                               (*.jpg, *.png, etc.)\n");
 		printf("  -m,  --minsize=SIZE        sets the minimum size (in pixels) of an\n");
-		printf("                               object(default is 128)\n");
+		printf("                               object (default is 128)\n");
 		printf("  -M,  --maxsize=SIZE        sets the maximum size (in pixels) of an\n");
-		printf("                               object(default is 1024)\n");
+		printf("                               object (default is 1024)\n");
+		printf("  -a,  --angle=ANGLE         cascade rotation angle:\n");
+		printf("                               0.0 is 0 radians and 1.0 is 2*pi radians\n");
+		printf("                               (default is 0.0)\n");
 		printf("  -q,  --qthreshold=THRESH   detection quality threshold (>=0.0):\n");
 		printf("                               all detections with estimated quality\n");
 		printf("                               below this threshold will be discarded\n");
@@ -335,6 +340,8 @@ int main(int argc, char* argv[])
 	// set default parameters
 	minsize = 128;
 	maxsize = 1024;
+
+	angle = 0.0f;
 
 	scalefactor = 1.1f;
 	stridefactor = 0.1f;
@@ -408,6 +415,20 @@ int main(int argc, char* argv[])
 			{
 				//
 				sscanf(argv[arg+1], "%d", &maxsize);
+				arg = arg + 2;
+			}
+			else
+			{
+				printf("# missing argument after '%s'\n", argv[arg]);
+				return 1;
+			}
+		}
+		else if(0==strcmp("-a", argv[arg]) || 0==strcmp("--angle", argv[arg]))
+		{
+			if(arg+1 < argc)
+			{
+				//
+				sscanf(argv[arg+1], "%f", &angle);
 				arg = arg + 2;
 			}
 			else
