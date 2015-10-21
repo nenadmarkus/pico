@@ -37,9 +37,9 @@ This is achieved by rotating the binary tests in internal tree nodes, as describ
 
 To use the runtime in your own application, you have to:
 
-* Include a prototype for a function `find_objects(...)` in your code (for example, by adding `#include picort.h`)
-* Include an image region classifier function (generated with `picogen.c` from a file outputted by `picolrn.c`; default: `facefinder.c` generated from a cascade named `facefinder`)
+* Include a prototype of `find_objects(...)` in your code (for example, by adding `#include picornt.h`)
 * Compile `picornt.c` with your code
+* Load/include a classification cascade generated with `picolrn` (e.g., `rnt/cascades/facefinder`)
 * Invoke `find_objects(...)` with appropriate parameters
 
 Notice that there are no specific library dependencies, i.e., the code can be compiled out-of-the-box with a standard C compiler.

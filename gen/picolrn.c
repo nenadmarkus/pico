@@ -211,18 +211,18 @@ int load_training_data(char* path)
 	regression trees
 */
 
-int bintest(int32_t tcode, int r, int c, int sr, int sc, int iind)
+int bintest(int32_t tcode, int r, int c, int s, int iind)
 {
 	//
 	int r1, c1, r2, c2;
 	int8_t* p = (int8_t*)&tcode;
 
 	//
-	r1 = (256*r + p[0]*sr)/256;
-	c1 = (256*c + p[1]*sc)/256;
+	r1 = (256*r + p[0]*s)/256;
+	c1 = (256*c + p[1]*s)/256;
 
-	r2 = (256*r + p[2]*sr)/256;
-	c2 = (256*c + p[3]*sc)/256;
+	r2 = (256*r + p[2]*s)/256;
+	c2 = (256*c + p[3]*s)/256;
 
 	//
 	r1 = MIN(MAX(0, r1), pdims[iind][0]-1);
@@ -235,7 +235,7 @@ int bintest(int32_t tcode, int r, int c, int sr, int sc, int iind)
 	return ppixels[iind][r1*pdims[iind][1]+c1]<=ppixels[iind][r2*pdims[iind][1]+c2];
 }
 
-float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int indsnum)
+float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int ss[], int iinds[], double ws[], int inds[], int indsnum)
 {
 	int i, j;
 
