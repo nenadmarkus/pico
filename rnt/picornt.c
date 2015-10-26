@@ -33,10 +33,7 @@ int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, in
 
 	uint8_t* pixels;
 
-	float tsr, tsc;
-	int tdepth, ntrees;
-
-	int offset, sr, sc;
+	int tdepth, ntrees, offset;
 
 	int8_t* ptree;
 	int8_t* tcodes;
@@ -47,20 +44,14 @@ int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, in
 	pixels = (uint8_t*)vppixels;
 
 	//
-	tsr = ((float*)cascade)[0];
-	tsc = ((float*)cascade)[1];
-
 	tdepth = ((int*)cascade)[2];
 	ntrees = ((int*)cascade)[3];
 
 	//
-	sr = (int)(s*tsr);
-	sc = (int)(s*tsc);
-
 	r = r*256;
 	c = c*256;
 
-	if( (r+128*sr)/256>=nrows || (r-128*sr)/256<0 || (c+128*sc)/256>=ncols || (c-128*sc)/256<0 )
+	if( (r+128*s)/256>=nrows || (r-128*s)/256<0 || (c+128*s)/256>=ncols || (c-128*s)/256<0 )
 		return -1;
 
 	//
@@ -80,7 +71,7 @@ int run_cascade(void* cascade, float* o, int r, int c, int s, void* vppixels, in
 		idx = 1;
 
 		for(j=0; j<tdepth; ++j)
-			idx = 2*idx + (pixels[(r+tcodes[4*idx+0]*sr)/256*ldim+(c+tcodes[4*idx+1]*sc)/256]<=pixels[(r+tcodes[4*idx+2]*sr)/256*ldim+(c+tcodes[4*idx+3]*sc)/256]);
+			idx = 2*idx + (pixels[(r+tcodes[4*idx+0]*s)/256*ldim+(c+tcodes[4*idx+1]*s)/256]<=pixels[(r+tcodes[4*idx+2]*s)/256*ldim+(c+tcodes[4*idx+3]*s)/256]);
 
 		*o = *o + lut[idx-(1<<tdepth)];
 
@@ -104,10 +95,7 @@ int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, v
 
 	uint8_t* pixels;
 
-	float tsr, tsc;
-	int tdepth, ntrees;
-
-	int offset, sr, sc;
+	int tdepth, ntrees, offset;
 
 	int8_t* ptree;
 	int8_t* tcodes;
@@ -121,9 +109,6 @@ int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, v
 	pixels = (uint8_t*)vppixels;
 
 	//
-	tsr = ((float*)cascade)[0];
-	tsc = ((float*)cascade)[1];
-
 	tdepth = ((int*)cascade)[2];
 	ntrees = ((int*)cascade)[3];
 

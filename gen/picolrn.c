@@ -249,7 +249,7 @@ float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int ss[]
 
 	for(i=0; i<indsnum; ++i)
 	{
-		if( bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
+		if( bintest(tcode, rs[inds[i]], cs[inds[i]], ss[inds[i]], iinds[inds[i]]) )
 		{
 			wsum1 += ws[inds[i]];
 			wtvalsum1 += ws[inds[i]]*tvals[inds[i]];
@@ -273,7 +273,7 @@ float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int ss[]
 	return (float)( (wmse0 + wmse1)/wsum );
 }
 
-int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int ninds)
+int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int ss[], int iinds[], double ws[], int inds[], int ninds)
 {
 	int stop;
 	int i, j;
@@ -289,7 +289,7 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 	while(!stop)
 	{
 		//
-		while( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
+		while( !bintest(tcode, rs[inds[i]], cs[inds[i]], ss[inds[i]], iinds[inds[i]]) )
 		{
 			if( i==j )
 				break;
@@ -297,7 +297,7 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 				++i;
 		}
 
-		while( bintest(tcode, rs[inds[j]], cs[inds[j]], srs[inds[j]], scs[inds[j]], iinds[inds[j]]) )
+		while( bintest(tcode, rs[inds[j]], cs[inds[j]], ss[inds[j]], iinds[inds[j]]) )
 		{
 			if( i==j )
 				break;
@@ -321,14 +321,33 @@ int split_training_data(int32_t tcode, float tvals[], int rs[], int cs[], int sr
 	n0 = 0;
 
 	for(i=0; i<ninds; ++i)
-		if( !bintest(tcode, rs[inds[i]], cs[inds[i]], srs[inds[i]], scs[inds[i]], iinds[inds[i]]) )
+		if( !bintest(tcode, rs[inds[i]], cs[inds[i]], ss[inds[i]], iinds[inds[i]]) )
 			++n0;
 
 	//
 	return n0;
 }
 
-int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int inds[], int ninds)
+int32_t get_random_tcode(int8_t* bbox)
+{
+	int32_t tcode;
+	int8_t* p;
+
+	//
+	p = (int8_t*)&tcode;
+
+	//
+	p[0] = bbox[0] + mwcrand()%(bbox[1]-bbox[0]+1);
+	p[1] = bbox[2] + mwcrand()%(bbox[3]-bbox[2]+1);
+
+	p[2] = bbox[0] + mwcrand()%(bbox[1]-bbox[0]+1);
+	p[3] = bbox[2] + mwcrand()%(bbox[3]-bbox[2]+1);
+
+	//
+	return tcode;
+}
+
+int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, float tvals[], int rs[], int cs[], int ss[], int iinds[], double ws[], int inds[], int ninds, int8_t* bbox)
 {
 	int i, nrands;
 
@@ -370,8 +389,8 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 		tcodes[nodeidx] = 0;
 
 		//
-		grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
-		grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
+		grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, ss, iinds, ws, inds, ninds, bbox);
+		grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, ss, iinds, ws, inds, ninds, bbox);
 
 		return 1;
 	}
@@ -380,12 +399,12 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 	nrands = NRANDS;
 
 	for(i=0; i<nrands; ++i)
-		tmptcodes[i] = mwcrand();
+		tmptcodes[i] = get_random_tcode(bbox);
 
 	//
 	#pragma omp parallel for
 	for(i=0; i<nrands; ++i)
-		es[i] = get_split_error(tmptcodes[i], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
+		es[i] = get_split_error(tmptcodes[i], tvals, rs, cs, ss, iinds, ws, inds, ninds);
 
 	//
 	e = es[0];
@@ -399,17 +418,17 @@ int grow_subtree(int32_t tcodes[], float lut[], int nodeidx, int d, int maxd, fl
 		}
 
 	//
-	n0 = split_training_data(tcodes[nodeidx], tvals, rs, cs, srs, scs, iinds, ws, inds, ninds);
+	n0 = split_training_data(tcodes[nodeidx], tvals, rs, cs, ss, iinds, ws, inds, ninds);
 
 	//
-	grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, &inds[0], n0);
-	grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, srs, scs, iinds, ws, &inds[n0], ninds-n0);
+	grow_subtree(tcodes, lut, 2*nodeidx+1, d+1, maxd, tvals, rs, cs, ss, iinds, ws, &inds[0], n0, bbox);
+	grow_subtree(tcodes, lut, 2*nodeidx+2, d+1, maxd, tvals, rs, cs, ss, iinds, ws, &inds[n0], ninds-n0, bbox);
 
 	//
 	return 1;
 }
 
-int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], int cs[], int srs[], int scs[], int iinds[], double ws[], int n)
+int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], int cs[], int ss[], int iinds[], double ws[], int n, int8_t* bbox)
 {
 	int i;
 	int* inds;
@@ -421,7 +440,7 @@ int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], in
 		inds[i] = i;
 
 	//
-	if(!grow_subtree(tcodes, lut, 0, 0, d, tvals, rs, cs, srs, scs, iinds, ws, inds, n))
+	if(!grow_subtree(tcodes, lut, 0, 0, d, tvals, rs, cs, ss, iinds, ws, inds, n, bbox))
 	{
 		free(inds);
 		return 0;
@@ -437,9 +456,12 @@ int grow_rtree(int32_t tcodes[], float lut[], int d, float tvals[], int rs[], in
 	
 */
 
-float tsr, tsc;
+int32_t version = 3;
+
 int tdepth;
 int ntrees=0;
+
+int8_t bbox[4]; // (r_min, r_max, c_min, c_max)
 
 int32_t tcodes[4096][1024];
 float luts[4096][1024];
@@ -462,14 +484,11 @@ int load_cascade_from_file(const char* path)
 		return 0;
 
 	//
-	fread(&tsr, sizeof(float), 1, file);
-	fread(&tsc, sizeof(float), 1, file);
-
+	fread(&version, sizeof(int32_t), 1, file);
+	fread(&bbox[0], sizeof(int8_t), 4, file);
 	fread(&tdepth, sizeof(int), 1, file);
-
 	fread(&ntrees, sizeof(int), 1, file);
 
-	//
 	for(i=0; i<ntrees; ++i)
 	{
 		//
@@ -497,14 +516,11 @@ int save_cascade_to_file(const char* path)
 		return 0;
 
 	//
-	fwrite(&tsr, sizeof(float), 1, file);
-	fwrite(&tsc, sizeof(float), 1, file);
-
+	fwrite(&version, sizeof(int32_t), 1, file);
+	fwrite(&bbox[0], sizeof(int8_t), 4, file);
 	fwrite(&tdepth, sizeof(int), 1, file);
-
 	fwrite(&ntrees, sizeof(int), 1, file);
 
-	//
 	for(i=0; i<ntrees; ++i)
 	{
 		//
@@ -524,7 +540,7 @@ int save_cascade_to_file(const char* path)
 	
 */
 
-float get_tree_output(int i, int r, int c, int sr, int sc, int iind)
+float get_tree_output(int i, int r, int c, int s, int iind)
 {
 	int idx, j;
 
@@ -532,7 +548,7 @@ float get_tree_output(int i, int r, int c, int sr, int sc, int iind)
 	idx = 1;
 
 	for(j=0; j<tdepth; ++j)
-		idx = 2*idx + bintest(tcodes[i][idx-1], r, c, sr, sc, iind);
+		idx = 2*idx + bintest(tcodes[i][idx-1], r, c, s, iind);
 
 	//
 	return luts[i][idx - (1<<tdepth)];
@@ -547,16 +563,12 @@ int classify_region(float* o, int r, int c, int s, int iind)
 		return 1;
 
 	//
-	sr = (int)(tsr*s);
-	sc = (int)(tsc*s);
-
 	*o = 0.0f;
 
-	//
 	for(i=0; i<ntrees; ++i)
 	{
 		//
-		*o += get_tree_output(i, r, c, sr, sc, iind);
+		*o += get_tree_output(i, r, c, s, iind);
 
 		//
 		if(*o <= thresholds[i])
@@ -571,26 +583,13 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 {
 	int i;
 
-	int* srs;
-	int* scs;
-
 	double* ws;
 	double wsum;
 
 	float threshold, tpr, fpr;
 
 	//
-	printf("* learning new stage ...\n");
-
-	//
-	srs = (int*)malloc((np+nn)*sizeof(int));
-	scs = (int*)malloc((np+nn)*sizeof(int));
-
-	for(i=0; i<np+nn; ++i)
-	{
-		srs[i] = (int)( tsr*ss[i] );
-		scs[i] = (int)( tsc*ss[i] );
-	}
+	printf("* learning a new stage ...\n");
 
 	//
 	ws = (double*)malloc((np+nn)*sizeof(double));
@@ -624,7 +623,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 			ws[i] /= wsum;
 
 		// grow a tree ...
-		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, srs, scs, iinds, ws, np+nn);
+		grow_rtree(tcodes[ntrees], luts[ntrees], tdepth, tvals, rs, cs, ss, iinds, ws, np+nn, bbox);
 
 		thresholds[ntrees] = -1337.0f;
 
@@ -636,7 +635,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 			float o;
 
 			//
-			o = get_tree_output(ntrees-1, rs[i], cs[i], srs[i], scs[i], iinds[i]);
+			o = get_tree_output(ntrees-1, rs[i], cs[i], ss[i], iinds[i]);
 
 			//
 			os[i] += o;
@@ -678,9 +677,6 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 	printf("	** threshold set to %f\n", threshold);
 
 	//
-	free(srs);
-	free(scs);
-
 	free(ws);
 
 	//
@@ -859,8 +855,10 @@ int learn_with_default_parameters(char* trdata, char* dst)
 	}
 
 	//
-	tsr = 1.0f;
-	tsc = 1.0f;
+	bbox[0] = -127;
+	bbox[1] = +127;
+	bbox[2] = -127;
+	bbox[3] = +127;
 
 	tdepth = 5;
 
@@ -926,22 +924,30 @@ int main(int argc, char* argv[])
 	{
 		learn_with_default_parameters(argv[1], argv[2]);
 	}
-	if(argc == 5)
+	else if(argc == 7)
 	{
-		sscanf(argv[1], "%f", &tsr);
-		sscanf(argv[2], "%f", &tsc);
+		int dummy;
 
-		sscanf(argv[3], "%d", &tdepth);
+		//
+		sscanf(argv[1], "%d", &dummy); bbox[0] = dummy;
+		sscanf(argv[2], "%d", &dummy); bbox[1] = dummy;
+		sscanf(argv[3], "%d", &dummy); bbox[2] = dummy;
+		sscanf(argv[4], "%d", &dummy); bbox[3] = dummy;
+
+		//
+		sscanf(argv[5], "%d", &tdepth);
 
 		//
 		ntrees = 0;
 
 		//
-		if(!save_cascade_to_file(argv[4]))
+		if(!save_cascade_to_file(argv[6]))
 			return 0;
 
 		//
-		printf("* initializing: (%f, %f, %d)\n", tsr, tsc, tdepth);
+		printf("* initializing:\n");
+		printf("	** bbox = (%d, %d, %d, %d)\n", bbox[0], bbox[1], bbox[2], bbox[3]);
+		printf("	** tdepth = %d\n", tdepth);
 
 		//
 		return 0;
