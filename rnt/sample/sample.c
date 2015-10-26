@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 		printf("  -c,  --scalefactor=SCALE   how much to rescale the window during the\n");
 		printf("                               multiscale detection process (default is 1.1)\n");
 		printf("  -t,  --stridefactor=STRIDE how much to move the window between neighboring\n");
-		printf("                               detections (default is 0.1, i.e., 10%)\n");
+		printf("                               detections (default is 0.1, i.e., 10%%)\n");
 		printf("  -u,  --usepyr              turns on the coarse image pyramid support\n");
 		printf("  -n,  --noclustering        turns off detection clustering\n");
 		printf("  -v,  --verbose             print details of the detection process\n");
