@@ -22,6 +22,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#include <omp.h>
+
 // hyperparameters
 #define NRANDS 1024
 
@@ -559,12 +561,12 @@ int classify_region(float* o, int r, int c, int s, int iind)
 	int i, sr, sc;
 
 	//
+	*o = 0.0f;
+
 	if(!ntrees)
 		return 1;
 
 	//
-	*o = 0.0f;
-
 	for(i=0; i<ntrees; ++i)
 	{
 		//
