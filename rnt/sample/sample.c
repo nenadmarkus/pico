@@ -19,8 +19,8 @@
 
 #include <stdio.h>
 
-#include <cv.h>
-#include <highgui.h>
+// opencv 3.x required
+#include "/usr/local/include/opencv2/highgui/highgui_c.h"
 
 //
 #include "../picornt.h"
