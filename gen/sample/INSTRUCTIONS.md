@@ -7,8 +7,7 @@ This tutorial will guide you through the process of learning your own face detec
 
 ## 2. Get images that do not contain faces (background):
 
-* Download a file from <https://googledrive.com/host/0Bw4IT5ZOzJj6NXlJUFh0UGZCWmc>
-* Rename `0Bw4IT5ZOzJj6NXlJUFh0UGZCWmc` to `background.tar`
+* Download `background.tar` from <https://drive.google.com/file/d/0Bw4IT5ZOzJj6Y2ZjRzRMMjNkLTQ/view?usp=sharing>
 * Extract the contents to some folder: `path/to/background`
 
 The negative training samples are data mined from these images during the training process.
