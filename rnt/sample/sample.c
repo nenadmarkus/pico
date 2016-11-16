@@ -198,7 +198,7 @@ void process_webcam_frames()
 
 	if(!capture)
 	{
-		printf("* cannot initialize video capture ...\n");
+		printf("# cannot initialize video capture ...\n");
 		return;
 	}
 
