@@ -1,20 +1,6 @@
 /*
- *	Copyright (c) 2013, Nenad Markus
- *	All rights reserved.
- *
- *	This is an implementation of the algorithm described in the following paper:
- *		N. Markus, M. Frljak, I. S. Pandzic, J. Ahlberg and R. Forchheimer,
- *		Object Detection with Pixel Intensity Comparisons Organized in Decision Trees,
- *		http://arxiv.org/abs/1305.4537
- *
- *	Redistribution and use of this program as source code or in binary form, with or without modifications, are permitted provided that the following conditions are met:
- *		1. Redistributions may not be sold, nor may they be used in a commercial product or activity without prior permission from the copyright holder (contact him at nenad.markus@fer.hr).
- *		2. Redistributions may not be used for military purposes.
- *		3. Any published work which utilizes this program shall include the reference to the paper available at http://arxiv.org/abs/1305.4537
- *		4. Redistributions must retain the above copyright notice and the reference to the algorithm on which the implementation is based on, this list of conditions and the following disclaimer.
- *
- *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- *	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *  This code is released under the MIT License.
+ *  Copyright (c) 2013 Nenad Markus
  */
 
 #define MAX(a, b) ((a)>(b)?(a):(b))
@@ -170,7 +156,7 @@ int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, v
 
 int find_objects
 		(
-			float rs[], float cs[], float ss[], float qs[], int maxndetections,
+			float rcsq[], int maxndetections,
 			void* cascade, float angle, // * `angle` is a number between 0 and 1 that determines the counterclockwise in-plane rotation of the cascade: 0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
 			void* pixels, int nrows, int ncols, int ldim,
 			float scalefactor, float stridefactor, float minsize, float maxsize
@@ -206,10 +192,10 @@ int find_objects
 				{
 					if(ndetections < maxndetections)
 					{
-						qs[ndetections] = q;
-						rs[ndetections] = r;
-						cs[ndetections] = c;
-						ss[ndetections] = s;
+						rcsq[4*ndetections+0] = r;
+						rcsq[4*ndetections+1] = c;
+						rcsq[4*ndetections+2] = s;
+						rcsq[4*ndetections+3] = q;
 
 						//
 						++ndetections;
@@ -241,25 +227,25 @@ float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2)
 	return overr*overc/(s1*s1+s2*s2-overr*overc);
 }
 
-void ccdfs(int a[], int i, float rs[], float cs[], float ss[], int n)
+void ccdfs(int a[], int i, float rcsq[], int n)
 {
 	int j;
 
 	//
 	for(j=0; j<n; ++j)
-		if(a[j]==0 && get_overlap(rs[i], cs[i], ss[i], rs[j], cs[j], ss[j])>0.3f)
+		if(a[j]==0 && get_overlap(rcsq[4*i+0], rcsq[4*i+1], rcsq[4*i+2], rcsq[4*j+0], rcsq[4*j+1], rcsq[4*j+2])>0.3f)
 		{
 			//
 			a[j] = a[i];
 
 			//
-			ccdfs(a, j, rs, cs, ss, n);
+			ccdfs(a, j, rcsq, n);
 		}
 }
 
-int find_connected_components(int a[], float rs[], float cs[], float ss[], int n)
+int find_connected_components(int a[], float rcsq[], int n)
 {
-	int i, ncc, cc;
+	int i, cc;
 
 	//
 	if(!n)
@@ -270,7 +256,6 @@ int find_connected_components(int a[], float rs[], float cs[], float ss[], int n
 		a[i] = 0;
 
 	//
-	ncc = 0;
 	cc = 1;
 
 	for(i=0; i<n; ++i)
@@ -280,24 +265,23 @@ int find_connected_components(int a[], float rs[], float cs[], float ss[], int n
 			a[i] = cc;
 
 			//
-			ccdfs(a, i, rs, cs, ss, n);
+			ccdfs(a, i, rcsq, n);
 
 			//
-			++ncc;
 			++cc;
 		}
 
 	//
-	return ncc;
+	return cc - 1; // number of connected components
 }
 
-int cluster_detections(float rs[], float cs[], float ss[], float qs[], int n)
+int cluster_detections(float rcsq[], int n)
 {
 	int idx, ncc, cc;
 	int a[4096];
 
 	//
-	ncc = find_connected_components(a, rs, cs, ss, n);
+	ncc = find_connected_components(a, rcsq, n);
 
 	if(!ncc)
 		return 0;
@@ -317,21 +301,19 @@ int cluster_detections(float rs[], float cs[], float ss[], float qs[], int n)
 		for(i=0; i<n; ++i)
 			if(a[i] == cc)
 			{
-				sumqs += qs[i];
-				sumrs += rs[i];
-				sumcs += cs[i];
-				sumss += ss[i];
+				sumrs += rcsq[4*i+0];
+				sumcs += rcsq[4*i+1];
+				sumss += rcsq[4*i+2];
+				sumqs += rcsq[4*i+3];
 
 				++k;
 			}
 
 		//
-		qs[idx] = sumqs; // accumulated confidence measure
-
-		//
-		rs[idx] = sumrs/k;
-		cs[idx] = sumcs/k;
-		ss[idx] = sumss/k;
+		rcsq[4*idx+0] = sumrs/k;
+		rcsq[4*idx+1] = sumcs/k;
+		rcsq[4*idx+2] = sumss/k;;
+		rcsq[4*idx+3] = sumqs; // accumulated confidence measure
 
 		//
 		++idx;

@@ -2,7 +2,7 @@
 #
 #
 
-OPENCV = -lopencv_highgui -lopencv_core -lopencv_imgproc -I/usr/include/opencv
+OPENCV = -lopencv_highgui -lopencv_core -lopencv_imgcodecs -lopencv_imgproc -lopencv_videoio
 
 #
 #
