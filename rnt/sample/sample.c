@@ -7,7 +7,7 @@
 
 // OpenCV 3.x required
 // depending on your computer configuration (OpenCV install path), the following line might need modifications
-#include "/usr/local/include/opencv2/highgui/highgui_c.h"
+#include <opencv2/highgui/highgui_c.h>
 
 //
 #include "../picornt.h"
@@ -167,7 +167,7 @@ void process_image(IplImage* frame, int draw)
 	if(draw)
 		for(i=0; i<ndetections; ++i)
 			if(rcsq[4*i+3]>=qthreshold) // check the confidence threshold
-				cvCircle(frame, cvPoint(rcsq[4*i+1], rcsq[4*i+0]), rcsq[4*i+2]/2, CV_RGB(255, 0, 0), 4, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
+				cvCircle(frame, cvPoint(rcsq[4*i+1], rcsq[4*i+0]), rcsq[4*i+2]/2, CV_RGB(255, 0, 0), 2, 8, 0); // we draw circles here since height-to-width ratio of the detected face regions is 1.0f
 
 	// if the `verbose` flag is set, print the results to standard output
 	if(verbose)
