@@ -490,8 +490,7 @@ int main(int argc, char* argv[])
 		printf("# All rights reserved.\n\n");
 
 		printf("# cascade parameters:\n");
-		printf("#	tsr = %f\n", ((float*)cascade)[0]);
-		printf("#	tsc = %f\n", ((float*)cascade)[1]);
+		printf("#	version = %d\n", ((int*)cascade)[0]);
 		printf("#	tdepth = %d\n", ((int*)cascade)[2]);
 		printf("#	ntrees = %d\n", ((int*)cascade)[3]);
 		printf("# detection parameters:\n");

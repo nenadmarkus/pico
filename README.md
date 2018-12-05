@@ -1,16 +1,9 @@
 # Pixel Intensity Comparison-based Object detection (pico)
 
-Those of you who would like to quickly see what this repository is all about, go to the folder **rnt/sample**.
-There you will find a sample program which will detect faces in a video stream supplied from the default webcam attached to the computer.
-Also, you can check out a demo video at <http://www.youtube.com/watch?v=1lXfm-PZz0Q>.
+This repository contains the code for real-time face detection.
+Check out a demo video at <http://www.youtube.com/watch?v=1lXfm-PZz0Q> to get the better idea.
 
-In general, detection can be described as a task of finding the positions and scales of all objects in an image that belong to a given appearance class.
-For example, these objects could be cars, pedestrians or human faces.
-Automatic object detection has a broad range of applications.
-Some include biometrics, driver assistance, visual surveillance and smart human-machine interfaces.
-These applications create a strong motivation for the development of fast and accurate object detection methods.
-
-The **pico** framework is a modifcation of the standard Viola-Jones object detection method.
+The **pico** framework is a modifcation of the standard Viola-Jones method.
 The basic idea is to scan the image with a cascade of binary classifers at all reasonable positions and scales.
 An image region is classifed as an object of interest if it successfully passes all the members of the cascade.
 Each binary classifier consists of an ensemble of decision trees with pixel intensity comparisons as binary tests in their internal nodes.
@@ -19,11 +12,18 @@ The details are given in <http://arxiv.org/abs/1305.4537>.
 
 Some highlights of **pico** are:
 
-* High processing speed.
-* There is no need for image preprocessing prior to detection.
-* There is no need for the computation of integral images, image pyramid, HOG pyramid or any other similar data structure.
-* All binary tests in internal nodes of the trees are based on the same feature type (not the case in the V-J framework).
-* The method can easily be modified for fast detection of in-plane rotated objects.
+* high processing speed;
+* there is no need for image preprocessing prior to detection;
+* there is no need for the computation of integral images, image pyramid, HOG pyramid or any other similar data structure;
+* all binary tests in internal nodes of the trees are based on the same feature type (not the case in the V-J framework);
+* the method can easily be modified for fast detection of in-plane rotated objects.
+
+It can be said that the main limitation of **pico** is also its simplicity:
+**pico** should be avoided when there is a large variation in appearance of the object class.
+This means, for example, that **pico** should not be used for detecting pedestrians.
+Large, modern convolutional neural networks are suitable for such cases.
+
+However, **pico** can be used for simple object classes (e.g., faces or templates) when real-time performance is desired.
 
 ## Detecting objects in images and videos
 

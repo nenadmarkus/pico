@@ -6,20 +6,17 @@
 import sys
 import os
 import numpy
-from PIL import Image
+import cv2
 import struct
-import argparse
 
 #
+import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('src')
 args = parser.parse_args()
 
 #
-src = args.src
-
-#
-def write_rid(im):
+def write_rid_to_stdout(im):
 	#
 	# raw intensity data
 	#
@@ -30,32 +27,36 @@ def write_rid(im):
 
 	#
 	hw = struct.pack('ii', h, w)
-
-	tmp = [None]*w*h
-	for y in range(0, h):
-		for x in range(0, w):
-			tmp[y*w + x] = im[y, x]
-
-	#
-	pixels = struct.pack('%sB' % w*h, *tmp)
+	pixels = struct.pack('%sB' % h*w, *im.reshape(-1))
 
 	#
 	sys.stdout.buffer.write(hw)
 	sys.stdout.buffer.write(pixels)
 
 #
-for dirpath, dirnames, filenames in os.walk(src):
+for dirpath, dirnames, filenames in os.walk(args.src):
 	for filename in filenames:
-		#
-		path = dirpath + '/' + filename
+		if filename.endswith('.jpg') or filename.endswith('.png') or filename.endswith('.JPG') or filename.endswith('.jpeg'):
+			#
+			path = dirpath + '/' + filename
 
-		#
-		try:
-			im = numpy.asarray(Image.open(path).convert('L'))
-		except:
-			continue
+			#
+			img = cv2.imread(path)
 
-		#
-		write_rid(im)
-		sys.stdout.buffer.write( struct.pack('i', 0) )
+			if img is None:
+				continue
 
+			if len(img.shape)==3:
+				img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+			#
+			if max(img.shape) > 1500:
+				img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
+
+			#
+			write_rid_to_stdout(img)
+			sys.stdout.buffer.write( struct.pack('i', 0) )
+			#
+			cv2.flip(img, 1)
+			write_rid_to_stdout(img)
+			sys.stdout.buffer.write( struct.pack('i', 0) )

@@ -4,14 +4,14 @@
  */
 
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
 
 #include <omp.h>
 
 // hyperparameters
-#define NRANDS 1024
+#define NRANDS 128
 
 /*
 	auxiliary stuff
@@ -100,14 +100,12 @@ uint32_t mwcrand()
 	
 */
 
-#define MAX_N 2000000
+#define MAX_N 4000000
 
-int N = 0;
+int nimages = 0;
 uint8_t* ppixels[MAX_N];
 int pdims[MAX_N][2]; // (nrows, ncols)
-
-int nbackground = 0;
-int background[MAX_N]; // i
+int contents[MAX_N][2]; // (i, j) where i is the start index and j-1 is the ending index
 
 int nobjects = 0;
 int objects[MAX_N][4]; // (r, c, s, i)
@@ -154,41 +152,35 @@ int load_training_data(char* path)
 		return 0;
 
 	//
-	N = 0;
-
-	nbackground = 0;
+	nimages = 0;
 	nobjects = 0;
 
-	while( load_image(&ppixels[N], &pdims[N][0], &pdims[N][1], file) )
+	while( load_image(&ppixels[nimages], &pdims[nimages][0], &pdims[nimages][1], file) )
 	{
 		int i, n;
 
 		//
+		contents[nimages][0] = nobjects;
+
 		if(fread(&n, sizeof(int), 1, file) != 1)
 			return 1;
 
-		if(!n)
+		for(i=0; i<n; ++i)
 		{
-			background[nbackground] = N;
-			++nbackground;
-		}
-		else
-		{
-			for(i=0; i<n; ++i)
-			{
-				fread(&objects[nobjects][0], sizeof(int), 1, file); // r
-				fread(&objects[nobjects][1], sizeof(int), 1, file); // c
-				fread(&objects[nobjects][2], sizeof(int), 1, file); // s
+			fread(&objects[nobjects][0], sizeof(int), 1, file); // r
+			fread(&objects[nobjects][1], sizeof(int), 1, file); // c
+			fread(&objects[nobjects][2], sizeof(int), 1, file); // s
 
-				objects[nobjects][3] = N; // i
+			objects[nobjects][3] = nimages; // i
 
-				//
-				++nobjects;
-			}
+			//
+			++nobjects;
 		}
+
+		contents[nimages][1] = contents[nimages][0] + n;
 
 		//
-		++N;
+		++nimages;
 	}
 
 	//
@@ -225,7 +217,7 @@ int bintest(int32_t tcode, int r, int c, int s, int iind)
 
 float get_split_error(int32_t tcode, float tvals[], int rs[], int cs[], int ss[], int iinds[], double ws[], int inds[], int indsnum)
 {
-	int i, j;
+	int i;
 
 	double wsum, wsum0, wsum1;
 	double wtvalsum0, wtvalsumsqr0, wtvalsum1, wtvalsumsqr1;
@@ -544,7 +536,7 @@ float get_tree_output(int i, int r, int c, int s, int iind)
 
 int classify_region(float* o, int r, int c, int s, int iind)
 {
-	int i, sr, sc;
+	int i;
 
 	//
 	*o = 0.0f;
@@ -567,7 +559,7 @@ int classify_region(float* o, int r, int c, int s, int iind)
 	return 1;
 }
 
-int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int np, int nn)
+float learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int np, int nn)
 {
 	int i;
 
@@ -635,7 +627,7 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 		do
 		{
 			//
-			threshold -= 0.005f;
+			threshold -= 0.001f;
 
 			numtps = 0;
 			numfps = 0;
@@ -668,12 +660,24 @@ int learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], in
 	free(ws);
 
 	//
-	return 1;
+	return fpr;
 }
 
-float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn)
+float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2)
 {
-	int i, n;
+	float overr, overc;
+
+	//
+	overr = MAX(0, MIN(r1+s1/2, r2+s2/2) - MAX(r1-s1/2, r2-s2/2));
+	overc = MAX(0, MIN(c1+s1/2, c2+s2/2) - MAX(c1-s1/2, c2-s2/2));
+
+	//
+	return overr*overc/(s1*s1+s2*s2-overr*overc);
+}
+
+float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn, int njitters)
+{
+	int i, j, n;
 
 	int64_t nw;
 	float etpr, efpr;
@@ -696,21 +700,52 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 		object samples
 	*/
 
+	if(nobjects*njitters > MAX_N)
+	{
+		printf("* nobjects*njitters is too large ... exiting ...\n");
+		return -1.0f;
+	}
+
+	//
 	for(i=0; i<nobjects; ++i)
-		if( classify_region(&os[n], objects[i][0], objects[i][1], objects[i][2], objects[i][3]) == 1 )
+		for(j=0; j<njitters; ++j)
 		{
 			//
-			rs[n] = objects[i][0];
-			cs[n] = objects[i][1];
-			ss[n] = objects[i][2];
+			int r, c, s, iind;
 
+			iind = objects[i][3];
 
-			iinds[n] = objects[i][3];
+			if(j==0)
+			{
+				r = objects[i][0];
+				c = objects[i][1];
+				s = objects[i][2];
+			}
+			else
+			{
+				// variation in scale
+				s = ((90 + (int)mwcrand()%21)*objects[i][2])/100;
 
-			tvals[n] = +1;
+				// variation in position
+				r = objects[i][0] + ((-50 + (int)mwcrand()%101)*s)/1000;
+				c = objects[i][1] + ((-50 + (int)mwcrand()%101)*s)/1000;
+			}
 
 			//
-			++n;
+			if( classify_region(&os[n], r, c, s, iind) == 1 )
+			{
+				//
+				rs[n] = r;
+				cs[n] = c;
+				ss[n] = s;
+
+				iinds[n] = iind;
+
+				tvals[n] = +1;
+
+				//
+				++n;
+			}
 		}
 
 	*np = n;
@@ -735,76 +770,81 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 
 	stop = 0;
 
-	if(nbackground)
+	#pragma omp parallel
 	{
-		#pragma omp parallel
+		int thid;
+
+		//
+		thid = omp_get_thread_num();
+
+		while(!stop)
 		{
-			int thid;
+			/*
+				data mine hard negatives
+			*/
+
+			float o;
+			int iind, s, r, c;
+
+			// should we sample based on image size?
+			iind = mwcrand_r(&prngs[thid])%nimages;
+
+			//if (contents[iind][0] != contents[iind][1])
+			//	continue;
 
 			//
-			thid = omp_get_thread_num();
+			r = mwcrand_r(&prngs[thid])%pdims[iind][0];
+			c = mwcrand_r(&prngs[thid])%pdims[iind][1];
+			s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
 
-			while(!stop)
+			//
+			if( classify_region(&o, r, c, s, iind) == 1 )
 			{
-				/*
-					data mine hard negatives
-				*/
+				// check if the region intersects with a true positive
+				// this could probably be done more effciently but we do not expect a large number of objects per image
+				int i, ok = 1;
+				for(i=contents[iind][0]; i<contents[iind][1]; ++i)
+					if(get_overlap(r, c, s, objects[i][0], objects[i][1], objects[i][2]) > 0.5f)
+						ok = 0;
 
-				float o;
-				int iind, s, r, c, nrows, ncols;
-				uint8_t* pixels;
-
-				//
-				iind = background[ mwcrand_r(&prngs[thid])%nbackground ];
-
-				//
-				r = mwcrand_r(&prngs[thid])%pdims[iind][0];
-				c = mwcrand_r(&prngs[thid])%pdims[iind][1];
-				s = objects[mwcrand_r(&prngs[thid])%nobjects][2]; // sample the size of a random object in the pool
-
-				//
-				if( classify_region(&o, r, c, s, iind) == 1 )
+				if(ok)
+				#pragma omp critical
 				{
 					//we have a false positive ...
-					#pragma omp critical
+					if(*nn<*np)
 					{
-						if(*nn<*np)
-						{
-							rs[n] = r;
-							cs[n] = c;
-							ss[n] = s;
+						rs[n] = r;
+						cs[n] = c;
+						ss[n] = s;
 
-							iinds[n] = iind;
+						iinds[n] = iind;
 
-							os[n] = o;
+						os[n] = o;
 
-							tvals[n] = -1;
+						tvals[n] = -1;
 
-							//
-							++n;
-							++*nn;
-						}
-						else
-							stop = 1;
+						//
+						++n;
+						++*nn;
 					}
+					else
+						stop = 1;
 				}
+			}
 
-				if(!stop)
-				{
-					#pragma omp atomic
-					++nw;
-				}
+			if(!stop)
+			{
+				#pragma omp atomic
+				++nw;
 			}
 		}
 	}
-	else
-		nw = 1;
 
 	/*
 		print the estimated true positive and false positive rates
 	*/
 
-	etpr = *np/(float)nobjects;
+	etpr = *np/(float)(njitters*nobjects);
 	efpr = (float)( *nn/(double)nw );
 
 	printf("* sampling finished ...\n");
@@ -832,8 +872,7 @@ static float os[2*MAX_N];
 
 int learn_with_default_parameters(char* trdata, char* dst)
 {
-	int i, np, nn;
-	float fpr;
+	int np, nn, njitters, nstages;
 
 	//
 	if(!load_training_data(trdata))
@@ -848,47 +887,38 @@ int learn_with_default_parameters(char* trdata, char* dst)
 	bbox[2] = -127;
 	bbox[3] = +127;
 
-	tdepth = 5;
+	tdepth = 6;
 
 	if(!save_cascade_to_file(dst))
 			return 0;
 
 	//
-	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9800f, 0.5f, 4, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_cascade_to_file(dst);
-
-	printf("\n");
-
-	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9850f, 0.5f, 8, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_cascade_to_file(dst);
-
-	printf("\n");
-
-	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9900f, 0.5f, 16, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_cascade_to_file(dst);
-
-	printf("\n");
-
-	sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
-	learn_new_stage(0.9950f, 0.5f, 32, tvals, rs, cs, ss, iinds, os, np, nn);
-	save_cascade_to_file(dst);
-
-	printf("\n");
+	njitters = 1;
 
 	//
-	while(sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn) > 1e-6f)
+	nstages = 0;
+
+	while(nstages<20 && sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, njitters)>0.00005f)
 	{
-		learn_new_stage(0.9975f, 0.5f, 64, tvals, rs, cs, ss, iinds, os, np, nn);
-		save_cascade_to_file(dst);
+		float fpr = learn_new_stage(0.9850f, 0.4000f, 20, tvals, rs, cs, ss, iinds, os, np, nn);
+
+		if(fpr > 0.8)
+		{
+			printf("* it seems there are convergence problems -> aborting\n");
+			break;
+		}
+		else
+		{
+			++nstages;
+			save_cascade_to_file(dst);
+		}
 
 		printf("\n");
 	}
 
 	//
-	printf("* target FPR achieved ... terminating the learning process ...\n");
+	printf("* finished learning %d stages ...\n", nstages);
+	return 1;
 }
 
 /*
@@ -898,7 +928,7 @@ int learn_with_default_parameters(char* trdata, char* dst)
 const char* howto()
 {
 	return
-		"TODO\n"
+		"./picolrn <trdata> <cascade write path>\n"
 	;
 }
 
@@ -912,30 +942,31 @@ int main(int argc, char* argv[])
 	{
 		learn_with_default_parameters(argv[1], argv[2]);
 	}
-	else if(argc == 7)
+	else if(argc == 4)
 	{
 		int dummy;
 
 		//
-		sscanf(argv[1], "%d", &dummy); bbox[0] = dummy;
-		sscanf(argv[2], "%d", &dummy); bbox[1] = dummy;
-		sscanf(argv[3], "%d", &dummy); bbox[2] = dummy;
-		sscanf(argv[4], "%d", &dummy); bbox[3] = dummy;
+		bbox[0] = -127;
+		bbox[1] = +127;
+		bbox[2] = -127;
+		bbox[3] = +127;
 
 		//
-		sscanf(argv[5], "%d", &tdepth);
+		sscanf(argv[1], "%d", &tdepth);
 
 		//
 		ntrees = 0;
 
 		//
-		if(!save_cascade_to_file(argv[6]))
+		if(!save_cascade_to_file(argv[2]))
 			return 0;
 
 		//
 		printf("* initializing:\n");
 		printf("	** bbox = (%d, %d, %d, %d)\n", bbox[0], bbox[1], bbox[2], bbox[3]);
 		printf("	** tdepth = %d\n", tdepth);
+		printf("	** output file: %s\n", argv[2]);
 
 		//
 		return 0;
@@ -964,7 +995,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[5], "%d", &ntrees);
 
 		//
-		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, 1);
 		learn_new_stage(tpr, fpr, ntrees, tvals, rs, cs, ss, iinds, os, np, nn);
 
 		//
