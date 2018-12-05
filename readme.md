@@ -28,7 +28,7 @@ However, **pico** can be used for simple object classes (e.g., faces or template
 ## Detecting objects in images and videos
 
 The folder **rnt/** contains all the needed resources to perform object detection in images and video streams with pre-trained classification cascades.
-Specifically, a sample application that performs face detection can be found in the folder **rnt/samples/**.
+Specifically, sample applications that perform face detection can be found in the folder **rnt/samples/**.
 
 Note that the library also enables the detection of rotated objects without the need of image resampling or classification cascade retraining.
 This is achieved by rotating the binary tests in internal tree nodes, as described in the paper.
@@ -44,7 +44,7 @@ To use the runtime in your own application, you have to:
 
 Notice that there are no specific library dependencies, i.e., the code can be compiled out-of-the-box with a standard C compiler.
 
-To get a feel for how the library works, we recommend that you look at `sample.c` as is was specifically written to be used as documentation.
+To get a feel for how the library works, we recommend that you look at `rnt/samples/native/sample.c` as is was specifically written to be used as documentation.
 
 ## Learning custom object detectors
 

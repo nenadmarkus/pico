@@ -30,6 +30,6 @@ After the learning is finished (less than a day on a modern machine), you should
 
 ## 4. Try the new face detector:
 
-Move the detector to folder `rnt/sample/` and execute the following command:
+Move the detector to folder `rnt/samples/native` and execute the following command:
 
 	$ ./pico d

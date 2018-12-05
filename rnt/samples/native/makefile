@@ -9,4 +9,4 @@ OPENCV = -lopencv_highgui -lopencv_core -lopencv_imgcodecs -lopencv_imgproc -lop
 #
 
 output:
-	g++ sample.c ../picornt.c -lrt $(OPENCV) -o pico -O3
+	g++ sample.c ../../picornt.c -lrt $(OPENCV) -o pico -O3
