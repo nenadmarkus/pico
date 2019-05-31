@@ -187,6 +187,19 @@ int load_training_data(char* path)
 	return 1;
 }
 
+void delete_training_data()
+{
+	int i;
+
+	for(i=0; i<nimages; ++i)
+	{
+		free(ppixels[i]);
+		ppixels[i] = 0;
+	}
+
+	nimages = 0;
+}
+
 /*
 	regression trees
 */
@@ -452,16 +465,9 @@ float thresholds[4096];
 	
 */
 
-int load_cascade_from_file(const char* path)
+int load_cascade_from_file(FILE* file)
 {
 	int i;
-	FILE* file;
-
-	//
-	file = fopen(path, "rb");
-
-	if(!file)
-		return 0;
 
 	//
 	fread(&version, sizeof(int32_t), 1, file);
@@ -478,22 +484,12 @@ int load_cascade_from_file(const char* path)
 	}
 
 	//
-	fclose(file);
-
-	//
 	return 1;
 }
 
-int save_cascade_to_file(const char* path)
+int save_cascade_to_file(FILE* file)
 {
 	int i;
-	FILE* file;
-
-	//
-	file = fopen(path, "wb");
-
-	if(!file)
-		return 0;
 
 	//
 	fwrite(&version, sizeof(int32_t), 1, file);
@@ -508,9 +504,6 @@ int save_cascade_to_file(const char* path)
 		fwrite(&luts[i][0], sizeof(float), 1<<tdepth, file);
 		fwrite(&thresholds[i], sizeof(float), 1, file);
 	}
-
-	//
-	fclose(file);
 
 	//
 	return 1;
@@ -663,6 +656,62 @@ float learn_new_stage(float mintpr, float maxfpr, int maxntrees, float tvals[], 
 	return fpr;
 }
 
+int find_objects
+(
+	float rcsq[], int maxndetections,
+	int iind,
+	float scalefactor, float stridefactor, float minsize, float maxsize
+)
+{
+	float s;
+	int ndetections, nrows, ncols;
+
+	//
+	nrows = pdims[iind][0];
+	ncols = pdims[iind][1];
+
+	ndetections = 0;
+	s = minsize;
+
+	while(s<=maxsize)
+	{
+		float r, c, dr, dc;
+
+		//
+		dr = dc = MAX(stridefactor*s, 1.0f);
+
+		//
+		for(r=s/2+1; r<=nrows-s/2-1; r+=dr)
+			for(c=s/2+1; c<=ncols-s/2-1; c+=dc)
+			{
+				float q;
+				int t;
+
+				t = classify_region(&q, r, c, s, iind);
+
+				if(1==t)
+				{
+					if(ndetections < maxndetections)
+					{
+						rcsq[4*ndetections+0] = r;
+						rcsq[4*ndetections+1] = c;
+						rcsq[4*ndetections+2] = s;
+						rcsq[4*ndetections+3] = q;
+
+						//
+						++ndetections;
+					}
+				}
+			}
+
+		//
+		s = scalefactor*s;
+	}
+
+	//
+	return ndetections;
+}
+
 float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2)
 {
 	float overr, overc;
@@ -675,7 +724,93 @@ float get_overlap(float r1, float c1, float s1, float r2, float c2, float s2)
 	return overr*overc/(s1*s1+s2*s2-overr*overc);
 }
 
-float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn, int njitters)
+void search_for_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn, float subsf)
+{
+	int i, n = 0;
+
+	#define NUMPRNGS 1024
+	static int prngsinitialized = 0;
+	static uint64_t prngs[NUMPRNGS];
+
+	if(!prngsinitialized)
+	{
+		// initialize a PRNG for each thread
+		for(i=0; i<NUMPRNGS; ++i)
+			prngs[i] = 0xFFFF*mwcrand() + 0xFFFF1234FFFF0001LL*mwcrand();
+
+		//
+		prngsinitialized = 1;
+	}
+
+	*np = 0;
+	*nn = 0;
+
+	#pragma omp parallel for
+	for(i=0; i<nimages; ++i)
+	{
+		int thid = omp_get_thread_num();
+
+		#define MAXNDETS 8192
+		float dets[4*MAXNDETS];
+		int ndets = find_objects(dets, MAXNDETS, i, 1.1f, 0.1f, 24, 1000);
+
+		//printf("%d -> %d %d %d\n", i, ndets, *np, *nn); fflush(stdout);
+
+		int j, k;
+		for(j=0; j<ndets; ++j)
+		{
+			int assigned = 0;
+
+			for(k=contents[i][0]; k<contents[i][1]; ++k)
+			{
+				float overlap = get_overlap(dets[4*j+0], dets[4*j+1], dets[4*j+2], objects[k][0], objects[k][1], objects[k][2]);
+
+				if(overlap > 0.6f && *np<MAX_N/2 && n<MAX_N)
+				#pragma omp critical
+				{
+					// true positive
+					//
+					rs[n] = dets[4*j+0];
+					cs[n] = dets[4*j+1];
+					ss[n] = dets[4*j+2];
+					os[n] = dets[4*j+3];
+
+					iinds[n] = i;
+
+					tvals[n] = +1;
+
+					//
+					++n;
+					++*np;
+				}
+
+				if(overlap > 0.4f)
+					assigned = 1;
+			}
+
+			if(!assigned && (mwcrand_r(&prngs[thid])%1000)/999.0f<subsf && *nn<3*MAX_N/4 && *nn<*np && n<MAX_N)
+				#pragma omp critical
+				{
+					// false positive
+					//
+					rs[n] = dets[4*j+0];
+					cs[n] = dets[4*j+1];
+					ss[n] = dets[4*j+2];
+					os[n] = dets[4*j+3];
+
+					iinds[n] = i;
+
+					tvals[n] = -1;
+
+					//
+					++n;
+					++*nn;
+				}
+		}
+	}
+}
+
+float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iinds[], float os[], int* np, int* nn)
 {
 	int i, j, n;
 
@@ -700,53 +835,40 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 		object samples
 	*/
 
-	if(nobjects*njitters > MAX_N)
+	if(nobjects > MAX_N)
 	{
-		printf("* nobjects*njitters is too large ... exiting ...\n");
+		printf("* nobjects is too large ... aborting ...\n");
 		return -1.0f;
 	}
 
 	//
 	for(i=0; i<nobjects; ++i)
-		for(j=0; j<njitters; ++j)
+	{
+		//
+		int r, c, s, iind;
+
+		iind = objects[i][3];
+
+		r = objects[i][0];
+		c = objects[i][1];
+		s = objects[i][2];
+
+		//
+		if( classify_region(&os[n], r, c, s, iind) == 1 )
 		{
 			//
-			int r, c, s, iind;
+			rs[n] = r;
+			cs[n] = c;
+			ss[n] = s;
 
-			iind = objects[i][3];
+			iinds[n] = iind;
 
-			if(j==0)
-			{
-				r = objects[i][0];
-				c = objects[i][1];
-				s = objects[i][2];
-			}
-			else
-			{
-				// variation in scale
-				s = ((90 + (int)mwcrand()%21)*objects[i][2])/100;
-
-				// variation in position
-				r = objects[i][0] + ((-50 + (int)mwcrand()%101)*s)/1000;
-				c = objects[i][1] + ((-50 + (int)mwcrand()%101)*s)/1000;
-			}
+			tvals[n] = +1;
 
 			//
-			if( classify_region(&os[n], r, c, s, iind) == 1 )
-			{
-				//
-				rs[n] = r;
-				cs[n] = c;
-				ss[n] = s;
-
-				iinds[n] = iind;
-
-				tvals[n] = +1;
-
-				//
-				++n;
-			}
+			++n;
 		}
+	}
 
 	*np = n;
 
@@ -844,7 +966,7 @@ float sample_training_data(float tvals[], int rs[], int cs[], int ss[], int iind
 		print the estimated true positive and false positive rates
 	*/
 
-	etpr = *np/(float)(njitters*nobjects);
+	etpr = *np/(float)(nobjects);
 	efpr = (float)( *nn/(double)nw );
 
 	printf("* sampling finished ...\n");
@@ -870,54 +992,58 @@ static int iinds[2*MAX_N];
 static float tvals[2*MAX_N];
 static float os[2*MAX_N];
 
-int learn_with_default_parameters(char* trdata, char* dst)
+int learn_a_cascade(char* savepath, int8_t bb[], int _tdepth, float stagetpr, float stagefpr, int maxntreesperstage)
 {
-	int np, nn, njitters, nstages;
+	int np, nn, i;
+	FILE* f = 0;
 
 	//
-	if(!load_training_data(trdata))
+	bbox[0] = bb[0];
+	bbox[1] = bb[1];
+	bbox[2] = bb[2];
+	bbox[3] = bb[3];
+
+	ntrees = 0;
+	tdepth = _tdepth;
+
+	//
+	while(1)
 	{
-		printf("* cannot load training data ...\n");
-		return 0;
-	}
+		float efpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
 
-	//
-	bbox[0] = -127;
-	bbox[1] = +127;
-	bbox[2] = -127;
-	bbox[3] = +127;
-
-	tdepth = 6;
-
-	if(!save_cascade_to_file(dst))
-			return 0;
-
-	//
-	njitters = 1;
-
-	//
-	nstages = 0;
-
-	while(nstages<20 && sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, njitters)>0.00005f)
-	{
-		float fpr = learn_new_stage(0.9850f, 0.4000f, 20, tvals, rs, cs, ss, iinds, os, np, nn);
-
-		if(fpr > 0.8)
-		{
-			printf("* it seems there are convergence problems -> aborting\n");
+		if(efpr<0.01f)
 			break;
-		}
-		else
-		{
-			++nstages;
-			save_cascade_to_file(dst);
-		}
+
+		learn_new_stage(stagetpr, stagefpr, maxntreesperstage, tvals, rs, cs, ss, iinds, os, np, nn);
 
 		printf("\n");
 	}
 
 	//
-	printf("* finished learning %d stages ...\n", nstages);
+	float subsf = 0.01f;
+
+	for(i=0; i<5; ++i)
+	{
+		//
+		printf("* scanning in progress\n");
+		search_for_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, subsf);
+		printf("* starting training with np=%d, nn=%d ...\n", np, nn);
+		learn_new_stage(stagetpr*stagetpr, stagefpr*stagefpr, maxntreesperstage, tvals, rs, cs, ss, iinds, os, np, nn);
+		//
+		if(savepath)
+		{
+			f = fopen(savepath, "wb");
+			save_cascade_to_file(f);
+			fclose(f);
+		}
+		// just for estimating FPR for random sampling
+		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+		//
+		subsf *= 3;
+	}
+
+	//
+	printf("* learning process finished\n");
 	return 1;
 }
 
@@ -928,60 +1054,74 @@ int learn_with_default_parameters(char* trdata, char* dst)
 const char* howto()
 {
 	return
-		"./picolrn <trdata> <cascade write path>\n"
+		"./picolrn <trdata> <cascade-write-path>\n"
 	;
 }
 
+#ifndef NO_PICOLRN_MAIN
 int main(int argc, char* argv[])
 {
+	FILE* file = 0;
+
 	// initialize the PRNG
 	smwcrand(time(0));
 
-	//
 	if(argc == 3)
 	{
-		learn_with_default_parameters(argv[1], argv[2]);
+		/*
+			* training with default params
+			* args: <trdata> <output-cascade>
+		*/
+		if(!load_training_data(argv[1]))
+		{
+			printf("* cannot load training data ...\n");
+			return 0;
+		}
+
+		int8_t bb[] = {-127, +127, -127, +127};
+		learn_a_cascade(argv[2], bb, 6, 0.98f, 0.4f, 16);
+
+		file = fopen(argv[2], "wb");
+		if(!file || !save_cascade_to_file(file))
+		{
+			printf("* cannot save result to specified destination\n");
+			return 1;
+		}
+		fclose(file);
 	}
-	else if(argc == 4)
+	else if(argc == 6)
 	{
-		int dummy;
+		/*
+			* initializing a new cascade with 0 trees
+			* args: <bbox[0]> <bbox[1]> <bbox[2]> <bbox[3]> <tdepth>
+		*/
+		int tdepth;
 
-		//
-		bbox[0] = -127;
-		bbox[1] = +127;
-		bbox[2] = -127;
-		bbox[3] = +127;
-
-		//
-		sscanf(argv[1], "%d", &tdepth);
-
-		//
+		sscanf(argv[1], "%hhd", &bbox[0]);
+		sscanf(argv[2], "%hhd", &bbox[1]);
+		sscanf(argv[3], "%hhd", &bbox[2]);
+		sscanf(argv[4], "%hhd", &bbox[3]);
+		sscanf(argv[5], "%d", &tdepth);
 		ntrees = 0;
 
-		//
-		if(!save_cascade_to_file(argv[2]))
-			return 0;
-
-		//
-		printf("* initializing:\n");
-		printf("	** bbox = (%d, %d, %d, %d)\n", bbox[0], bbox[1], bbox[2], bbox[3]);
-		printf("	** tdepth = %d\n", tdepth);
-		printf("	** output file: %s\n", argv[2]);
-
-		//
-		return 0;
+		save_cascade_to_file(stdout);
 	}
 	else if(argc == 7)
 	{
-		float tpr, fpr;
-		int ntrees, np, nn;
+		/*
+			* append a new stage to an existing cascade
+			* args: <current-cascade> <trdata> <tpr> <fpr> <ntrees> <new-cascade>
+		*/
+		float stagetpr, stagefpr;
+		int maxntreesforstage, np, nn;
 
-		//
-		if(!load_cascade_from_file(argv[1]))
+		file = fopen(argv[1], "rb");
+		if(!file || !load_cascade_from_file(file))
 		{
 			printf("* cannot load a cascade from '%s'\n", argv[1]);
 			return 1;
 		}
+		fclose(file);
 
 		if(!load_training_data(argv[2]))
 		{
@@ -989,25 +1129,32 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		//
-		sscanf(argv[3], "%f", &tpr);
-		sscanf(argv[4], "%f", &fpr);
-		sscanf(argv[5], "%d", &ntrees);
 
-		//
-		sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, 1);
-		learn_new_stage(tpr, fpr, ntrees, tvals, rs, cs, ss, iinds, os, np, nn);
+		sscanf(argv[3], "%f", &stagetpr);
+		sscanf(argv[4], "%f", &stagefpr);
+		sscanf(argv[5], "%d", &maxntreesforstage);
 
-		//
-		if(!save_cascade_to_file(argv[6]))
+		float efpr = sample_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn);
+		if(efpr < 0.01f)
+			search_for_training_data(tvals, rs, cs, ss, iinds, os, &np, &nn, 0.05f);
+
+		printf("* starting training with np=%d, nn=%d ...\n", np, nn);
+		learn_new_stage(stagetpr, stagefpr, maxntreesforstage, tvals, rs, cs, ss, iinds, os, np, nn);
+
+		file = fopen(argv[6], "wb");
+		if(!file || !save_cascade_to_file(file))
+		{
+			printf("* cannot save result to specified destination\n");
 			return 1;
+		}
+		fclose(file);
 	}
 	else
 	{
 		printf("%s", howto());
-		return 0;
 	}
 
 	//
 	return 0;
 }
+#endif
