@@ -155,12 +155,12 @@ int run_rotated_cascade(void* cascade, float* o, int r, int c, int s, float a, v
 }
 
 int find_objects
-		(
-			float rcsq[], int maxndetections,
-			void* cascade, float angle, // * `angle` is a number between 0 and 1 that determines the counterclockwise in-plane rotation of the cascade: 0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
-			void* pixels, int nrows, int ncols, int ldim,
-			float scalefactor, float stridefactor, float minsize, float maxsize
-		)
+(
+	float rcsq[], int maxndetections,
+	void* cascade, float angle, // * `angle` is a number between 0 and 1 that determines the counterclockwise in-plane rotation of the cascade: 0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
+	void* pixels, int nrows, int ncols, int ldim,
+	float scalefactor, float stridefactor, float minsize, float maxsize
+)
 {
 	float s;
 	int ndetections;
@@ -321,4 +321,50 @@ int cluster_detections(float rcsq[], int n)
 
 	//
 	return idx;
+}
+
+/*
+
+*/
+
+int update_memory
+(
+	int* slot,
+	float memory[], int counts[], int nmemslots, int maxslotsize,
+	float rcsq[], int ndets, int maxndets
+)
+{
+	int i, j;
+
+	//
+	counts[*slot] = ndets;
+
+	for(i=0; i<counts[*slot]; ++i)
+	{
+		memory[*slot*4*maxslotsize + 4*i + 0] = rcsq[4*i + 0];
+		memory[*slot*4*maxslotsize + 4*i + 1] = rcsq[4*i + 1];
+		memory[*slot*4*maxslotsize + 4*i + 2] = rcsq[4*i + 2];
+		memory[*slot*4*maxslotsize + 4*i + 3] = rcsq[4*i + 3];
+	}
+
+	*slot = (*slot + 1)%nmemslots;
+
+	//
+	ndets = 0;
+
+	for(i=0; i<nmemslots; ++i)
+		for(j=0; j<counts[i]; ++j)
+		{
+			if(ndets >= maxndets)
+				return ndets;
+
+			rcsq[4*ndets + 0] = memory[i*4*maxslotsize + 4*j + 0];
+			rcsq[4*ndets + 1] = memory[i*4*maxslotsize + 4*j + 1];
+			rcsq[4*ndets + 2] = memory[i*4*maxslotsize + 4*j + 2];
+			rcsq[4*ndets + 3] = memory[i*4*maxslotsize + 4*j + 3];
+
+			++ndets;
+		}
+
+	return ndets;
 }

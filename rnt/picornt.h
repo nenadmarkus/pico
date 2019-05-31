@@ -14,11 +14,18 @@
 //		0.0f corresponds to 0 radians and 1.0f corresponds to 2*pi radians
 
 int find_objects
-		(
-			float rcsq[], int maxndetections,
-			void* cascade, float angle,
-			void* pixels, int nrows, int ncols, int ldim,
-			float scalefactor, float stridefactor, float minsize, float maxsize
-		);
+(
+	float rcsq[], int maxndetections,
+	void* cascade, float angle,
+	void* pixels, int nrows, int ncols, int ldim,
+	float scalefactor, float stridefactor, float minsize, float maxsize
+);
 
 int cluster_detections(float rcsq[], int n);
+
+int update_memory
+(
+	int* slot,
+	float memory[], int counts[], int nmemslots, int maxslotsize,
+	float rcsq[], int ndets, int maxndets
+);
