@@ -1,4 +1,3 @@
-import subprocess
 import numpy
 import os
 import ctypes
@@ -67,7 +66,9 @@ while(True):
 	#
 	gray = numpy.ascontiguousarray(frm[:, :, 1].reshape((frm.shape[0], frm.shape[1])))
 	#
+	t = time.time()
 	dets = process_frame(gray) # gray needs to be numpy.uint8 array
+	print("* frame processed in %d [ms]" % int(1000.0*(time.time() - t)))
 	for det in dets:
 		if det[3] >= 50.0:
 			cv2.circle(frm, (int(det[1]), int(det[0])), int(det[2]/2.0), (0, 0, 255), 4)
