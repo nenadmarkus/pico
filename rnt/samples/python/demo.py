@@ -28,6 +28,9 @@ counts = numpy.zeros(nmemslots, dtype=numpy.int32)
 
 def process_frame(gray):
 	#
+	maxface = min(gray.shape[0], gray.shape[1])
+	minface = maxface//5
+	#
 	maxndets = 2048
 	dets = numpy.zeros(4*maxndets, dtype=numpy.float32)
 
@@ -35,7 +38,7 @@ def process_frame(gray):
 		ctypes.c_void_p(dets.ctypes.data), ctypes.c_int(maxndets),
 		ctypes.c_void_p(cascade.ctypes.data), ctypes.c_float(0.0),
 		ctypes.c_void_p(gray.ctypes.data), ctypes.c_int(gray.shape[0]), ctypes.c_int(gray.shape[1]), ctypes.c_int(gray.shape[1]),
-		ctypes.c_float(1.1), ctypes.c_float(0.1), ctypes.c_float(100), ctypes.c_float(1000)
+		ctypes.c_float(1.1), ctypes.c_float(0.1), ctypes.c_float(minface), ctypes.c_float(maxface)
 	)
 
 	ndets = pico.update_memory(
